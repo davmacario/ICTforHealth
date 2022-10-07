@@ -1,7 +1,9 @@
 import sub.minimization as mymin
 import numpy as np
+
 Np = 100
 Nf = 4
+
 A = np.random.randn(Np, Nf)
 w = np.random.randn(Nf,)
 y = A@w
