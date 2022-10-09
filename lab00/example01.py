@@ -5,6 +5,8 @@ First example - solving LLS problem
 import matplotlib.pyplot as plt
 import numpy as np
 
+np.random.seed(315054)
+
 Np = 10      # rows
 Nf = 5      # features
 

@@ -4,6 +4,8 @@ import numpy as np
 Np = 100
 Nf = 4
 
+np.random.seed(315054)
+
 A = np.random.randn(Np, Nf)
 w = np.random.randn(Nf,)
 y = A@w

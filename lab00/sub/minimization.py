@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+np.random.seed(315054)
+
 
 class SolveMinProbl:
     """
