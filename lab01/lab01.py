@@ -188,3 +188,55 @@ plt.title('LLS - Error histogram')
 plt.tight_layout()
 plt.savefig('./lab01/img/LLS-err_hist.png')
 plt.show()
+
+# Now it can be useful to evlauate the performance by plotting the actual
+# values of y_te vs. the estimated ones (my means of lin. reg.)
+
+plt.figure(figsize=(6, 4))
+plt.plot(y_te, y_hat_te, '.')   # Place dots
+v = plt.axis()
+# Plot 45deg diagonal line
+plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
+plt.xlabel(r'$y$')
+plt.ylabel(r'$\^y$')
+plt.grid()
+plt.title("LLS - Test")
+plt.tight_layout()
+plt.savefig('./lab01/img/LLS-yhat-vs-y.png')
+plt.show()
+
+# Evaluate other parameters - max, min, stdev, msv of the error, ...
+# Over training set
+E_tr_min = E_tr.min()
+E_tr_max = E_tr.max()
+E_tr_mu = E_tr.mean()
+E_tr_sigma = E_tr.std()
+E_tr_MSE = np.mean(E_tr**2)
+# R^2 (coefficient of determination)
+R2_tr = 1 - E_tr_MSE/(np.std(y_tr**2))
+# Correlation coefficient
+c_tr = np.mean((y_tr - y_tr.mean())*(y_hat_tr - y_hat_tr.mean())
+               )/(y_tr.std()*y_hat_tr.std())
+
+# Over test set
+E_te_min = E_te.min()
+E_te_max = E_te.max()
+E_te_mu = E_te.mean()
+E_te_sigma = E_te.std()
+E_te_MSE = np.mean(E_te**2)
+# R^2 (coefficient of determination)
+R2_te = 1 - E_te_MSE/(np.std(y_te**2))
+# Correlation coefficient
+c_te = np.mean((y_te - y_te.mean())*(y_hat_te - y_hat_te.mean())
+               )/(y_te.std()*y_hat_te.std())
+
+# Put together these performance figures, create a DataFrame
+rows = ['Training', 'Test']
+cols = ['min', 'max', 'mean', 'std', 'MSE', 'R^2', 'corr_coeff']
+p = np.array([
+    [E_tr_min, E_tr_max, E_tr_mu, E_tr_sigma, E_tr_MSE, R2_tr, c_tr],
+    [E_te_min, E_te_max, E_te_mu, E_te_sigma, E_te_MSE, R2_te, c_te]
+])
+results = pd.DataFrame(p, columns=cols, index=rows)
+
+print(results)
