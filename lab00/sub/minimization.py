@@ -6,7 +6,7 @@ np.random.seed(315054)
 
 class SolveMinProbl:
     """
-    This class is used to solve mi
+    This class is used to solve minimization problems
     """
 
     def __init__(self, y=np.ones((3,)), A=np.eye(3)):
@@ -38,7 +38,12 @@ class SolveMinProbl:
 
 class SolveLLS(SolveMinProbl):
     """
+    ---------------------------------------------------------
     This class is used to solve Linear Least Squares problems
+    making use of class "SolveMinProbl"
+    ---------------------------------------------------------
+
+    ---------------------------------------------------------
     """
 
     def run(self):
@@ -71,6 +76,9 @@ class SolveGrad(SolveMinProbl):
         for it in range(Nit):
             grad = 2*A.T@(A@w - y)
             w = w - gamma*grad
+
+            # First element of self.err is the iteration number,
+            # second one is the actual error
             self.err[it, 0] = it
             self.err[it, 1] = np.linalg.norm(A@w - y)**2
 
