@@ -6,12 +6,12 @@ np.random.seed(315054)
 
 class SolveMinProbl:
     """
-    This class is used to solve minimization problems
+    This class is used to solve quadratic minimization problems of the LLS type
     """
 
     def __init__(self, y=np.ones((3,)), A=np.eye(3)):
         self.matr = A
-        self.NP = y.shape[0]
+        self.Np = y.shape[0]
         self.Nf = A.shape[1]
         self.vect = y
         self.sol = np.zeros((self.Nf, ), dtype=float)
@@ -24,7 +24,7 @@ class SolveMinProbl:
         plt.plot(n, w_hat)
         plt.xlabel('n')
         plt.ylabel('$\hat{w}(n)$')
-        plt.title('Title')
+        plt.title(title)
         plt.grid()
         plt.show()
         return
@@ -35,14 +35,16 @@ class SolveMinProbl:
         print(self.sol)
         return
 
+# Define class SolveLLS which inherits from SolveMinProbl (Same methods work)
+
 
 class SolveLLS(SolveMinProbl):
     """
     ---------------------------------------------------------
-    This class is used to solve Linear Least Squares problems
-    making use of class "SolveMinProbl"
+    This class is used to solve minimization problems by 
+    means of the LLS method
     ---------------------------------------------------------
-
+    The result used is w_hat = (A^T*A)^{-1}*A^T*y
     ---------------------------------------------------------
     """
 
@@ -55,6 +57,7 @@ class SolveLLS(SolveMinProbl):
         return
 
 
+# Define class SolveGrad which inherits from SolveMinProbl (Same methods work)
 class SolveGrad(SolveMinProbl):
     """
     -----------------------------------------------
@@ -67,20 +70,36 @@ class SolveGrad(SolveMinProbl):
     """
 
     def run(self, gamma=1e-3, Nit=100):
+        """ 
+        ----------------------------------------------------------
+        This method is used to run the Gradient Algorithm 
+        having defined the problem to solve
+        ----------------------------------------------------------
+        Parameters:
+        - gamma: algorithm hyperparameter (multiplies the gradient 
+          at each iteration)
+        - Nit: number of iterations (stopping condition)
+        ----------------------------------------------------------
+        The solution is then stored in the 'sol' 
+        attribute (defined in SolveMinProbl)
+        ----------------------------------------------------------
+        """
+        # Define vector self.err to store the values of the error
+        # at each iteration (each row contains n. iter and error value)
         self.err = np.zeros((Nit, 2), dtype=float)
         A = self.matr
         y = self.vect
 
-        w = np.random.rand(self.Nf,)
+        w = np.random.rand(self.Nf, 1)
 
         for it in range(Nit):
-            grad = 2*A.T@(A@w - y)
+            grad = 2*(A.T@((A@w) - y))
             w = w - gamma*grad
 
             # First element of self.err is the iteration number,
             # second one is the actual error
             self.err[it, 0] = it
-            self.err[it, 1] = np.linalg.norm(A@w - y)**2
+            self.err[it, 1] = np.linalg.norm((A@w) - y)**2
 
         self.sol = w
         self.min = self.err[it, 1]

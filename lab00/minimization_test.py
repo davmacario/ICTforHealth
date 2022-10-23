@@ -7,9 +7,13 @@ Nf = 4
 np.random.seed(315054)
 
 A = np.random.randn(Np, Nf)
-w = np.random.randn(Nf,)
+w = np.random.randn(Nf, 1)
 y = A@w
-m = mymin.SolveLLS(y, A)
-m.run()
+m = mymin.SolveGrad(y, A)
+m.run(gamma=1e-5, Nit=200)
+# Methods inherited by SolveMinProbl
 m.print_result('LLS')
 m.plot_w_hat('LLS')
+
+# Method exclusive to SolveGrad
+m.plot_err()

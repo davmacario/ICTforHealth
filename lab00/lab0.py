@@ -17,7 +17,7 @@ m.plot_w_hat('LLS')  # plot w_hat (inherited method)
 
 Nit = 1000
 gamma = 1e-5
-g = mymin.SolveGrand(y, A)
+g = mymin.SolveGrad(y, A)
 g.run(gamma, Nit)
 g.print_result('Gradient algorithm')
 logx = 0

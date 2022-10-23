@@ -1,5 +1,5 @@
 """
-First example - solving LLS problem
+First example - solving LLS problem - no classes created
 """
 
 import matplotlib.pyplot as plt
