@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import sub.minimization as mymin
 
 #### Preparing and analyzing the data: #################################
 
@@ -120,7 +121,9 @@ sy = ss.total_UPDRS     # Std. dev. of total UPDRS
 Xsh_norm = (Xsh-mm)/ss  # Normalize data
 ysh_norm = Xsh_norm['total_UPDRS']  # Extract regressand
 # Isolate regressors (remove total UPDRS and patient ID)
-Xsh_norm = Xsh_norm.drop(['total_UPDRS', 'subject#'], axis=1)
+# Also remove jitterDDP and Shimmer DDA
+Xsh_norm = Xsh_norm.drop(
+    ['total_UPDRS', 'subject#', 'Jitter:DDP', 'Shimmer:DDA'], axis=1)
 
 # Obtain final training and test datasets
 X_tr_norm = Xsh_norm[0:Ntr]
@@ -139,12 +142,20 @@ X_te_norm = X_te_norm.values
 y_tr_norm = y_tr_norm.values
 y_te_norm = y_te_norm.values
 
-# Solve LLS
-w_hat = np.linalg.inv(X_tr_norm.T@X_tr_norm)@(X_tr_norm.T@y_tr_norm)
+# %%
+# Solve with LLS
+# w_hat = np.linalg.inv(X_tr_norm.T@X_tr_norm)@(X_tr_norm.T@y_tr_norm)
+
+
+# %%
+# Solve regression with Steepest Descent
+w_SD = mymin.SteepestDescent(y_tr_norm, X_tr_norm)
+w_hat = w_SD.run(Nit=50)
 
 # Plot w_hat (look at potential problems, e.g., collinearity)
 regressors = list(Xsh_norm.columns)     # Get list of regressors
-Nf = len(w_hat)       # Number of features = length of w_hat = len(regressors)
+# Number of features = length of w_hat = len(regressors)
+Nf = len(w_hat)
 
 nn = np.arange(Nf)
 
