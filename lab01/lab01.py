@@ -3,6 +3,25 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import sub.minimization as mymin
 
+
+# TODO: Introduce classes and methods for plotting graphs and generating 
+# resulting dataframes
+# TODO: Compare Steepest Descent and LLS results
+# TODO: local linear regression model (find 10 neighbors)
+# TODO: plot: 
+#          - Estimated regressand vs. true regressand (de-norm)
+#          - Histogram of de-norm. estimation error
+# TODO: fill DataFrame with the measured min, max, mean, stdev, msv, R^2, 
+# correlation coeff. for regression errors, comparing normal and local 
+# linear regression
+# TODO: run the program also with 20 values of the seed and average results
+
+
+
+
+
+
+
 #### Preparing and analyzing the data: #################################
 
 # Read Parkinson's data file and store result in
@@ -97,7 +116,7 @@ Xsh = Xsh.sort_index(axis=0)
 
 #### Performing Regression #############################################
 
-# First, perform normalization in order to obtain zero mean and unit
+# First, perform NORMALIZATION in order to obtain zero mean and unit
 # variance in the features (which speeds up computation)
 # --> Subtract the mean and divide by std. dev. each feature
 
@@ -144,11 +163,10 @@ y_te_norm = y_te_norm.values
 
 # %%
 # Solve with LLS
-# w_hat = np.linalg.inv(X_tr_norm.T@X_tr_norm)@(X_tr_norm.T@y_tr_norm)
-
+w_hat_LLS = np.linalg.inv(X_tr_norm.T@X_tr_norm)@(X_tr_norm.T@y_tr_norm)
 
 # %%
-# Solve regression with Steepest Descent
+############### Solve regression with Steepest Descent
 w_SD = mymin.SteepestDescent(y_tr_norm, X_tr_norm)
 w_hat = w_SD.run(Nit=50)
 
