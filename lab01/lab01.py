@@ -2,24 +2,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import sub.minimization as mymin
+import sub.linearRegression as myLR
 
 
-# TODO: Introduce classes and methods for plotting graphs and generating 
+# TODO [1]: Introduce classes and methods for plotting graphs and generating
 # resulting dataframes
-# TODO: Compare Steepest Descent and LLS results
-# TODO: local linear regression model (find 10 neighbors)
-# TODO: plot: 
+
+# TODO [2]: Compare Steepest Descent and LLS results
+# TODO [3]: local linear regression model (find 10 neighbors)
+# TODO [4]: plot:
 #          - Estimated regressand vs. true regressand (de-norm)
 #          - Histogram of de-norm. estimation error
-# TODO: fill DataFrame with the measured min, max, mean, stdev, msv, R^2, 
-# correlation coeff. for regression errors, comparing normal and local 
+# TODO [5]: fill DataFrame with the measured min, max, mean, stdev, msv, R^2,
+# correlation coeff. for regression errors, comparing normal and local
 # linear regression
-# TODO: run the program also with 20 values of the seed and average results
-
-
-
-
-
+# TODO [6]: run the program also with 20 values of the seed and average results
 
 
 #### Preparing and analyzing the data: #################################
@@ -49,7 +46,9 @@ for k in subj:
     xk = x[x[features[0]] == k]    # xk contains all measurements of patient k
     xk1 = xk.copy()
 
-    xk1.test_time = xk1.test_time.astype(int)   # Remove decimal value
+    # Remove decimal value - method astype is used to cast DataFrames to a specific type
+    # Integer value is the day ID
+    xk1.test_time = xk1.test_time.astype(int)
     xk1['g'] = xk1['test_time']  # Add new feature 'g'
     v = xk1.groupby('g').mean()  # Group measurements related to the same day
     # feature 'g' is then removed
@@ -86,13 +85,13 @@ plt.figure()
 c.total_UPDRS.plot()
 plt.grid()
 plt.xticks(np.arange(len(features)), features, rotation=90)
-plt.title('Correlation coefficient among total UPDRS and other features')
+plt.title('Correlation coefficient between total UPDRS and other features')
 plt.tight_layout()
 plt.savefig("./lab01/img/corr_tot_UPDRS.png")
 plt.show()
 
 # Keep in mind: even though the patient ID seems correlated to the total
-# UPDRS, itis not correct to use it as a regressor (it does not depend
+# UPDRS, it is not correct to use it as a regressor (it does not depend
 # on the disease level in any way)
 
 # It is convenient to shuffle the rows of the data - in this way we can
@@ -111,7 +110,8 @@ Xsh = Xsh.sort_index(axis=0)
 
 ########################################################################
 # REGRESSAND: Total UPDRS
-# REGRESSORS: all other features, excluding patient ID
+# REGRESSORS: all other features, excluding patient ID, Jitter:DDP and
+# Shimmer:DDA
 ########################################################################
 
 #### Performing Regression #############################################
@@ -120,7 +120,7 @@ Xsh = Xsh.sort_index(axis=0)
 # variance in the features (which speeds up computation)
 # --> Subtract the mean and divide by std. dev. each feature
 
-# NOTE: features mean and standard dev. can only be measured from the
+# NOTE: features mean and standard dev. must be measured from the
 # training dataset!
 
 # 50% of shuffled matrix is out training set, other 50% is test set
@@ -130,21 +130,23 @@ Nte = Np - Ntr
 # Isolate training data
 X_tr = Xsh[0:Ntr]
 
-mm = X_tr.mean()        # Mean of the training data (for all features)
-ss = X_tr.std()         # Std. dev. for all features
+mm = X_tr.mean()        # Mean of the training data (one element for each feature)
+ss = X_tr.std()         # Std. dev. for each feature
 
+# Eval. mean and stdev for regressand UPDRS (we will need to de-normalize the result of
+# our estimations)
 my = mm.total_UPDRS     # Mean of total UPDRS
 sy = ss.total_UPDRS     # Std. dev. of total UPDRS
 
 # Normalize data
-Xsh_norm = (Xsh-mm)/ss  # Normalize data
+Xsh_norm = (Xsh-mm)/ss
 ysh_norm = Xsh_norm['total_UPDRS']  # Extract regressand
 # Isolate regressors (remove total UPDRS and patient ID)
 # Also remove jitterDDP and Shimmer DDA
 Xsh_norm = Xsh_norm.drop(
     ['total_UPDRS', 'subject#', 'Jitter:DDP', 'Shimmer:DDA'], axis=1)
 
-# Obtain final training and test datasets
+# Obtain final NORMALIZED training and test datasets
 X_tr_norm = Xsh_norm[0:Ntr]
 X_te_norm = Xsh_norm[Ntr:]
 
@@ -154,19 +156,23 @@ y_te_norm = ysh_norm[Ntr:]
 # In order to solve the Linear Least Squares problem to find the
 # vector of weights w_hat, it is easier to work with Ndarrays
 # (NumPy)
-
+# Extract Ndarrays by means of the pandas.DataFrame.values attribute
 X_tr_norm = X_tr_norm.values
-X_te_norm = X_te_norm.values
-
 y_tr_norm = y_tr_norm.values
+
+X_te_norm = X_te_norm.values
 y_te_norm = y_te_norm.values
+
+
+# Create LinearRegression object
+
 
 # %%
 # Solve with LLS
 w_hat_LLS = np.linalg.inv(X_tr_norm.T@X_tr_norm)@(X_tr_norm.T@y_tr_norm)
 
 # %%
-############### Solve regression with Steepest Descent
+# Solve regression with Steepest Descent
 w_SD = mymin.SteepestDescent(y_tr_norm, X_tr_norm)
 w_hat = w_SD.run(Nit=50)
 
@@ -189,6 +195,7 @@ plt.tight_layout()
 plt.savefig("./lab01/img/LLS-w_hat.png")
 plt.show()
 
+# Performance evaluation
 # Now, evaluate y_hat
 y_hat_tr_norm = X_tr_norm@w_hat
 y_hat_te_norm = X_te_norm@w_hat
@@ -205,7 +212,7 @@ y_te = y_te_norm*sy + my
 E_tr = (y_tr - y_hat_tr)
 E_te = (y_te - y_hat_te)
 
-e = [E_tr, E_te]        # It is a list containing 2 lists (not merged)
+e = [E_tr, E_te]        # It is a list containing 2 ndarrays (not merged)
 
 plt.figure(figsize=(6, 4))
 plt.hist(e, bins=50, density=True, histtype='bar', label=['training', 'test'])
