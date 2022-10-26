@@ -104,7 +104,7 @@ class LinearRegression():
         #
         # (Vedi LLS_test e SD_test)
 
-    def solve_LLS(self, plot_res=False, imagepath="./lab01/img/LLS-w_hat.png"):
+    def solve_LLS(self, plot_w=False, imagepath="./lab01/img/LLS-w_hat.png"):
         X_tr_norm = self.regressors_norm
         y_tr_norm = self.regressand_norm
         self.w_hat_LLS = np.linalg.inv(
@@ -116,7 +116,7 @@ class LinearRegression():
 
         self.LLS_error_train = self.regressand - self.y_hat_LLS
 
-        if plot_res:
+        if plot_w:
             nn = np.arange(self.Nf)
             plt.figure(figsize=(6, 4))
             plt.plot(nn, self.w_hat_LLS, '-o')
@@ -130,7 +130,7 @@ class LinearRegression():
             plt.savefig(imagepath)
             plt.show()
 
-    def solve_SteepestDescent(self, Nit=50, plot_res=False, imagepath="./lab01/img/SD-w_hat.png"):
+    def solve_SteepestDescent(self, Nit=50, plot_w=False, imagepath="./lab01/img/SD-w_hat.png"):
         X_tr_norm = self.regressors_norm
         y_tr_norm = self.regressand_norm
         SD_problem = mymin.SteepestDescent(
@@ -143,7 +143,7 @@ class LinearRegression():
 
         self.SD_error_train = self.regressand - self.y_hat_SD
 
-        if plot_res:
+        if plot_w:
             nn = np.arange(self.Nf)
             plt.figure(figsize=(6, 4))
             plt.plot(nn, self.w_hat_SD, '-o')
@@ -179,7 +179,7 @@ class LinearRegression():
         plt.savefig(imagepath)
         plt.show()
 
-    def LLS_test(self, test_regressand, test_regressors):
+    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, img_path='./lab01/img/LLS-err_hist.png'):
         # Check w_hat_LLS already computed
         if (self.w_hat_LLS == np.zeros((self.Nf,))):
             self.solveLLS()
@@ -199,17 +199,68 @@ class LinearRegression():
         # Error
         err_LLS_test = y_test - y_hat_LLS_test
 
+        if plot_hist:
+            e = [self.LLS_error_train, err_LLS_test]
+
+            plt.figure(figsize=(6, 4))
+            plt.hist(e, bins=50, density=True, histtype='bar',
+                     label=['training', 'test'])
+            plt.xlabel(r"$e = y - \^y$")
+            plt.ylabel(r'$P(e$ in bin$)$')
+            plt.legend()
+            plt.grid()
+            plt.title('LLS - Error histogram')
+            plt.tight_layout()
+            plt.savefig(img_path)
+            plt.show()
+
         return err_LLS_test
 
-    def SD_test(self, test_regressand, test_regressors):
+    def SD_test(self, test_regressand, test_regressors, plot_hist=False, img_path='./lab01/img/SD-err_hist.png'):
         # Check w_hat_SD already computed
-        pass
+        if (self.w_hat_SD == np.zeros((self.Nf,))):
+            self.solveSD()
 
-    def test(self, test_regressand, test_regressors):
+        ## Test set ###################################################
+        y_test = test_regressand.values
+        X_test = test_regressors.values
+
+        # Normalize
+        X_test_norm = (X_test - self.mean_regressors)/self.stdev_regressors
+
+        # Obtain approximated regressand
+        y_hat_LLS_norm_test = X_test_norm@self.w_hat_SD
+        # De-normalize
+        y_hat_LLS_test = y_hat_LLS_norm_test*self.stdev_regressand + self.mean_regressand
+
+        # Error
+        err_SD_test = y_test - y_hat_LLS_test
+
+        if plot_hist:
+            e = [self.SD_error_train, err_SD_test]
+
+            plt.figure(figsize=(6, 4))
+            plt.hist(e, bins=50, density=True, histtype='bar',
+                     label=['training', 'test'])
+            plt.xlabel(r"$e = y - \^y$")
+            plt.ylabel(r'$P(e$ in bin$)$')
+            plt.legend()
+            plt.grid()
+            plt.title('SD - Error histogram')
+            plt.tight_layout()
+            plt.savefig(img_path)
+            plt.show()
+
+        return err_SD_test
+
+    def test(self, test_regressand, test_regressors, plot_hist=False, include_train=False):
         # Call both LLS_test and SD_test and store the results (absolute errors) in order
         # to make the comparison between the two methods
 
-        # Need to plot
+        err_LLS_test = self.LLS_test(test_regressand, test_regressors)
+        err_SD_test = self.SD_test(test_regressand, test_regressors)
+
+        # plot the histogram
         pass
 
 
