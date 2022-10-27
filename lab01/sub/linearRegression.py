@@ -253,15 +253,29 @@ class LinearRegression():
 
         return err_SD_test
 
-    def test(self, test_regressand, test_regressors, plot_hist=False, include_train=False):
+    def test(self, test_regressand, test_regressors, plot_hist=False, img_path = './lab01/img/err_hist_compare.png'):
         # Call both LLS_test and SD_test and store the results (absolute errors) in order
         # to make the comparison between the two methods
 
         err_LLS_test = self.LLS_test(test_regressand, test_regressors)
         err_SD_test = self.SD_test(test_regressand, test_regressors)
 
-        # plot the histogram
-        pass
+        e = [err_LLS_test, err_SD_test]
+
+        if plot_hist:
+            plt.figure(figsize=(6, 4))
+            plt.hist(e, bins=50, density=True, histtype='bar',
+                     label=['LLS', 'SD'])
+            plt.xlabel(r"$e = y - \^y$")
+            plt.ylabel(r'$P(e$ in bin$)$')
+            plt.legend()
+            plt.grid()
+            plt.title('Error histogram - comparison')
+            plt.tight_layout()
+            plt.savefig(img_path)
+            plt.show()
+
+        return e
 
 
 if __name__ == '__main__':

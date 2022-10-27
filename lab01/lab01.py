@@ -163,7 +163,8 @@ y_tr_norm = y_tr_norm.values
 X_te_norm = X_te_norm.values
 y_te_norm = y_te_norm.values
 
-
+########################################################################################
+# From this point on, the script needs to be rewritten using the class
 # Create LinearRegression object
 
 
