@@ -87,7 +87,7 @@ class LinearRegression():
         self.LLS_error_train = np.zeros((self.Np,))
         self.SD_error_train = np.zeros((self.Np,))
 
-    def solve_LLS(self, plot_w=False, save_png=False, imagepath="./lab01/img/LLS-w_hat.png"):
+    def solve_LLS(self, plot_w=False, save_w=False, imagepath_w="./lab01/img/LLS-w_hat.png", plot_y=False, save_y=False, imagepath_y="./lab01/img/LLS-y_vs_y_hat.png"):
         """
         Solution of the Linear Regression by means of the Linear Least Squares method.
         This function fills the attribute w_hat_LLS.
@@ -95,9 +95,14 @@ class LinearRegression():
         Optional parameters: 
         - plot_w: (default False) if True, a plot of the weights vector (w_hat_LLS) is 
           produced
-        - save_png: (default False) if True, the image will be saved in the specified path
-        - imagepath: (default: "./lab01/img/LLS-w_hat.png") path in which the image will 
+        - save_w: (default False) if True, the image will be saved in the specified path
+        - imagepath_w: (default: "./lab01/img/LLS-w_hat.png") path in which the image will 
           be stored
+        - plot_y: (default False) if True, plot the comparison between the actual 
+          regressand and the approximated one (y_hat) obtained using LLS (de-normalized)
+        - save_y: (default False) if True, save the image in the specified path
+        - imagepath_y: (default "./lab01/img/LLS-y_vs_y_hat.png") path in which to store
+          the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         """
         X_tr_norm = self.regressors_norm
@@ -122,11 +127,11 @@ class LinearRegression():
             plt.title('LLS - Optimized weights')
             plt.grid()
             plt.tight_layout()
-            if save_png:
-                plt.savefig(imagepath)
+            if save_w:
+                plt.savefig(imagepath_w)
             plt.show()
 
-    def solve_SteepestDescent(self, Nit=50, plot_w=False, save_png=False, imagepath="./lab01/img/SD-w_hat.png"):
+    def solve_SteepestDescent(self, Nit=50, plot_w=False, save_w=False, imagepath_w="./lab01/img/SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./lab01/img/SD-y_vs_y_hat.png"):
         """
         Solution of the Linear Regression by means of the Steepest Descent method.
         This function fills the attribute w_hat_SD.
@@ -135,9 +140,14 @@ class LinearRegression():
         - Nit: number of iterations (stopping condition) for the Steepest Descent algorithm
         - plot_w: (default False) if True, a plot of the weights vector (w_hat_SD) is 
           produced
-        - save_png: (default False) if True, the image will be saved in the specified path
-        - imagepath: (default: "./lab01/img/SD-w_hat.png") path in which the image will 
+        - save_w: (default False) if True, the image will be saved in the specified path
+        - imagepath_w: (default: "./lab01/img/SD-w_hat.png") path in which the image will 
           be stored
+        - plot_y: (default False) if True, plot the comparison between the actual 
+          regressand and the approximated one (y_hat) obtained using SD (de-normalized)
+        - save_y: (default False) if True, save the image in the specified path
+        - imagepath_y: (default "./lab01/img/SD-y_vs_y_hat.png") path in which to store
+          the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         """
         X_tr_norm = self.regressors_norm
@@ -163,8 +173,8 @@ class LinearRegression():
             plt.title('Steepest Descent - Optimized weights')
             plt.grid()
             plt.tight_layout()
-            if save_png:
-                plt.savefig(imagepath)
+            if save_w:
+                plt.savefig(imagepath_w)
             plt.show()
 
     def plot_w(self, save_png=False, imagepath="./lab01/img/w_hat_comparison.png"):
@@ -199,6 +209,8 @@ class LinearRegression():
         if save_png:
             plt.savefig(imagepath)
         plt.show()
+
+    # def trainingSetPerformance(self, save_png=False, imagepath="./lab01/img/w_hat_comparison.png")
 
     def LLS_test(self, test_regressand, test_regressors, plot_hist=False, save_png=False, img_path='./lab01/img/LLS-err_hist.png'):
         """
