@@ -131,6 +131,21 @@ class LinearRegression():
                 plt.savefig(imagepath_w)
             plt.show()
 
+        if plot_y:
+            plt.figure(figsize=(6, 4))
+            plt.plot(self.regressand, self.y_hat_LLS, '.')   # Place dots
+            v = plt.axis()
+            # Plot 45deg diagonal line
+            plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
+            plt.xlabel(r'$y$')
+            plt.ylabel(r'$\^y$')
+            plt.grid()
+            plt.title("LLS - Training set")
+            plt.tight_layout()
+            if save_y:
+                plt.savefig(imagepath_y)
+            plt.show()
+
     def solve_SteepestDescent(self, Nit=50, plot_w=False, save_w=False, imagepath_w="./lab01/img/SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./lab01/img/SD-y_vs_y_hat.png"):
         """
         Solution of the Linear Regression by means of the Steepest Descent method.
@@ -157,7 +172,7 @@ class LinearRegression():
         self.w_hat_SD = SD_problem.run(Nit)
 
         self.y_hat_SD_norm = X_tr_norm@(self.w_hat_SD)
-        self.y_hat_LLS = self.stdev_regressand * \
+        self.y_hat_SD = self.stdev_regressand * \
             (self.y_hat_SD_norm) + self.mean_regressand
 
         self.SD_error_train = self.regressand - self.y_hat_SD
@@ -175,6 +190,21 @@ class LinearRegression():
             plt.tight_layout()
             if save_w:
                 plt.savefig(imagepath_w)
+            plt.show()
+
+        if plot_y:
+            plt.figure(figsize=(6, 4))
+            plt.plot(self.regressand, self.y_hat_SD, '.')   # Place dots
+            v = plt.axis()
+            # Plot 45deg diagonal line
+            plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
+            plt.xlabel(r'$y$')
+            plt.ylabel(r'$\^y$')
+            plt.grid()
+            plt.title("SD - Training set")
+            plt.tight_layout()
+            if save_y:
+                plt.savefig(imagepath_y)
             plt.show()
 
     def plot_w(self, save_png=False, imagepath="./lab01/img/w_hat_comparison.png"):
@@ -212,7 +242,7 @@ class LinearRegression():
 
     # def trainingSetPerformance(self, save_png=False, imagepath="./lab01/img/w_hat_comparison.png")
 
-    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, save_png=False, img_path='./lab01/img/LLS-err_hist.png'):
+    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./lab01/img/LLS-err_hist.png', plot_y=False, save_y=False, imagepath_y='./lab01/img/LLS_y_test_vs_y_hat_test.png'):
         """
         This method is used to estimate a test regressand given the test 
         regressors and using the weights evaluated with the LLS method
@@ -224,9 +254,14 @@ class LinearRegression():
         Optional parameters
         - plot_hist: (default False) if True, a histogram of the error values 
           (test_regressand - y_hat_LLS) will be produced
-        - save_png: (default False) if True, the plot will be saved in the specified path
-        - img_path: (default './lab01/img/LLS-err_hist.png') path at which the histogram 
-          will be saved
+        - save_hist: (default False) if True, the plot will be saved in the specified path
+        - imagepath_hist: (default './lab01/img/LLS-err_hist.png') path at which the 
+          histogram will be saved
+        - plot_y: (default False) if True, plot the comparison between the actual 
+          regressand and the approximated one (y_hat) obtained using LLS (de-normalized)
+        - save_y: (default False) if True, save the image in the specified path
+        - imagepath_y: (default './lab01/img/LLS_y_test_vs_y_hat_test.png') path in which 
+          to store the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         Returned variable(s):
         - err_LLS_test: Ndarray of absolute error (regressand - y_hat_LLS)
@@ -271,13 +306,28 @@ class LinearRegression():
             plt.grid()
             plt.title('LLS - Error histogram')
             plt.tight_layout()
-            if save_png:
-                plt.savefig(img_path)
+            if save_hist:
+                plt.savefig(imagepath_hist)
+            plt.show()
+
+        if plot_y:
+            plt.figure(figsize=(6, 4))
+            plt.plot(test_regressand, y_hat_LLS_test, '.')   # Place dots
+            v = plt.axis()
+            # Plot 45deg diagonal line
+            plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
+            plt.xlabel(r'$y$')
+            plt.ylabel(r'$\^y$')
+            plt.grid()
+            plt.title("LLS - Test set")
+            plt.tight_layout()
+            if save_y:
+                plt.savefig(imagepath_y)
             plt.show()
 
         return err_LLS_test
 
-    def SD_test(self, test_regressand, test_regressors, plot_hist=False, save_png=False, img_path='./lab01/img/SD-err_hist.png'):
+    def SD_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./lab01/img/SD-err_hist.png', plot_y=False, save_y=False, imagepath_y='./lab01/img/SD_y_test_vs_y_hat_test.png'):
         """
         This method is used to estimate a test regressand given the test 
         regressors and using the weights evaluated with the SD method
@@ -289,9 +339,14 @@ class LinearRegression():
         Optional parameters
         - plot_hist: (default False) if True, a histogram of the error values 
           (test_regressand - y_hat_SD) will be produced
-        - save_png: (default False) if True, the plot will be saved in the specified path
-        - img_path: (default './lab01/img/SD-err_hist.png') path at which the histogram 
-          will be saved
+        - save_hist: (default False) if True, the plot will be saved in the specified path
+        - imagepath_hist: (default './lab01/img/SD-err_hist.png') path at which the 
+          histogram will be saved
+        - plot_y: (default False) if True, plot the comparison between the actual 
+          regressand and the approximated one (y_hat) obtained using SD (de-normalized)
+        - save_y: (default False) if True, save the image in the specified path
+        - imagepath_y: (default './lab01/img/SD_y_test_vs_y_hat_test.png') path in which 
+          to store the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         Returned variable(s):
         - err_SD_test: Ndarray of absolute error (regressand - y_hat_SD)
@@ -317,12 +372,12 @@ class LinearRegression():
         X_test_norm = (X_test - self.mean_regressors)/self.stdev_regressors
 
         # Obtain approximated regressand
-        y_hat_LLS_norm_test = X_test_norm@self.w_hat_SD
+        y_hat_SD_norm_test = X_test_norm@self.w_hat_SD
         # De-normalize
-        y_hat_LLS_test = y_hat_LLS_norm_test*self.stdev_regressand + self.mean_regressand
+        y_hat_SD_test = y_hat_SD_norm_test*self.stdev_regressand + self.mean_regressand
 
         # Error
-        err_SD_test = y_test - y_hat_LLS_test
+        err_SD_test = y_test - y_hat_SD_test
 
         if plot_hist:
             e = [self.SD_error_train, err_SD_test]
@@ -336,13 +391,28 @@ class LinearRegression():
             plt.grid()
             plt.title('SD - Error histogram')
             plt.tight_layout()
-            if save_png:
-                plt.savefig(img_path)
+            if save_hist:
+                plt.savefig(imagepath_hist)
+            plt.show()
+
+        if plot_y:
+            plt.figure(figsize=(6, 4))
+            plt.plot(test_regressand, y_hat_SD_test, '.')   # Place dots
+            v = plt.axis()
+            # Plot 45deg diagonal line
+            plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
+            plt.xlabel(r'$y$')
+            plt.ylabel(r'$\^y$')
+            plt.grid()
+            plt.title("SD - Test set")
+            plt.tight_layout()
+            if save_y:
+                plt.savefig(imagepath_y)
             plt.show()
 
         return err_SD_test
 
-    def test(self, test_regressand, test_regressors, plot_hist=False, save_png=False, img_path='./lab01/img/err_hist_compare.png'):
+    def test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./lab01/img/err_hist_compare.png'):
         """
         This method is used to compare the performance of Linear Regression carried out
         with either LLS or Steepest Descent in terms of error on the regressand
@@ -380,7 +450,8 @@ class LinearRegression():
             plt.grid()
             plt.title('Error histogram - comparison')
             plt.tight_layout()
-            plt.savefig(img_path)
+            if save_hist:
+                plt.savefig(imagepath_hist)
             plt.show()
 
         return e
