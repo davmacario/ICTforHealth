@@ -268,7 +268,7 @@ class LinearRegression():
         -----------------------------------------------------------------------------------
         """
         # Check w_hat_LLS already computed
-        if (self.w_hat_LLS == np.zeros((self.Nf,))):
+        if (all(self.w_hat_LLS == np.zeros((self.Nf,)))):
             self.solveLLS()
 
         if (test_regressand.values.shape != self.regressand.shape):
@@ -353,7 +353,7 @@ class LinearRegression():
         -----------------------------------------------------------------------------------
         """
         # Check w_hat_SD already computed
-        if (self.w_hat_SD == np.zeros((self.Nf,))):
+        if (all(self.w_hat_SD == np.zeros((self.Nf,)))):
             self.solveSD()
 
         if (test_regressand.values.shape != self.regressand.shape):
@@ -384,7 +384,7 @@ class LinearRegression():
 
             plt.figure(figsize=(6, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
-                     label=['training', 'test'])
+                     label=['training set', 'test set'])
             plt.xlabel(r"$e = y - \^y$")
             plt.ylabel(r'$P(e$ in bin$)$')
             plt.legend()
@@ -424,8 +424,8 @@ class LinearRegression():
         Optional parameters
         - plot_hist: (default False) if True, a histogram of the error values 
           (test_regressand - y_hat_LLS) will be produced
-        - save_png: (default False) if True, the plot will be saved in the specified path
-        - img_path: (default './lab01/img/err_hist_compare.png') path at which the 
+        - save_hist: (default False) if True, the plot will be saved in the specified path
+        - imagepath_hist: (default './lab01/img/err_hist_compare.png') path at which the 
           histogram will be saved
         -----------------------------------------------------------------------------------
         Returned variable(s):
@@ -448,7 +448,8 @@ class LinearRegression():
             plt.ylabel(r'$P(e$ in bin$)$')
             plt.legend()
             plt.grid()
-            plt.title('Error histogram - comparison')
+            plt.title(
+                'Error histogram - comparison between the methods (over test set)')
             plt.tight_layout()
             if save_hist:
                 plt.savefig(imagepath_hist)
