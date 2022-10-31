@@ -265,6 +265,7 @@ class LinearRegression():
         -----------------------------------------------------------------------------------
         Returned variable(s):
         - err_LLS_test: Ndarray of absolute error (regressand - y_hat_LLS)
+        - y_hat_LLS_test: approximated regressand
         -----------------------------------------------------------------------------------
         """
         # Check w_hat_LLS already computed
@@ -325,7 +326,7 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-        return err_LLS_test
+        return err_LLS_test, y_hat_LLS_test
 
     def SD_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./lab01/img/SD-err_hist.png', plot_y=False, save_y=False, imagepath_y='./lab01/img/SD_y_test_vs_y_hat_test.png'):
         """
@@ -350,6 +351,7 @@ class LinearRegression():
         -----------------------------------------------------------------------------------
         Returned variable(s):
         - err_SD_test: Ndarray of absolute error (regressand - y_hat_SD)
+        - y_hat_SD_test: approssimated regressand
         -----------------------------------------------------------------------------------
         """
         # Check w_hat_SD already computed
@@ -410,7 +412,7 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-        return err_SD_test
+        return err_SD_test, y_hat_SD_test
 
     def test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./lab01/img/err_hist_compare.png'):
         """
@@ -435,10 +437,11 @@ class LinearRegression():
         # Call both LLS_test and SD_test and store the results (absolute errors) in order
         # to make the comparison between the two methods
 
-        err_LLS_test = self.LLS_test(test_regressand, test_regressors)
-        err_SD_test = self.SD_test(test_regressand, test_regressors)
+        err_LLS_test, y_hat_LLS_te = self.LLS_test(test_regressand, test_regressors)
+        err_SD_test, y_hat_SD_te = self.SD_test(test_regressand, test_regressors)
 
         e = [err_LLS_test, err_SD_test]
+        y_hat_list = [y_hat_LLS_te, y_hat_SD_te]
 
         if plot_hist:
             plt.figure(figsize=(6, 4))
@@ -455,18 +458,121 @@ class LinearRegression():
                 plt.savefig(imagepath_hist)
             plt.show()
 
-        return e
+        return e, y_hat_list
 
 
-def errorAnalysis(self, test_regressand, test_regressors):
-    error_list = self.test(test_regressand, test_regressors)
+    def errorAnalysis_LLS(self, test_regressand, test_regressors):
+        """  """
+        e_LLS_te, y_hat_LLS_te = self.LLS_test(test_regressand, test_regressors)
 
-    # Analysis for LLS
-    e_LLS = error_list[0]
+        y_te = test_regressand.values
+        X_te = test_regressors.values
 
-    # Analysis for SD
-    e_SD = error_list[1]
+        ### Analysis for LLS
+        # Training set
+        E_tr_min_LLS = self.LLS_error_train.min()
+        E_tr_max_LLS = self.LLS_error_train.max()
+        E_tr_mu_LLS = self.LLS_error_train.mean()
+        E_tr_sigma_LLS = self.LLS_error_train.std()
+        E_tr_MSE_LLS = np.mean(self.LLS_error_train**2)
+        # R^2 (coefficient of determination)
+        R2_tr_LLS = 1 - E_tr_MSE_LLS/(np.std(self.regressand**2))
+        # Correlation coefficient
+        c_tr_LLS = np.mean((self.regressand - self.regressand.mean())*(self.y_hat_LLS - self.y_hat_LLS.mean())
+                    )/(self.regressand.std()*self.y_hat_LLS.std())
 
+        # Test set
+        E_te_min_LLS = e_LLS_te.min()
+        E_te_max_LLS = e_LLS_te.max()
+        E_te_mu_LLS = e_LLS_te.mean()
+        E_te_sigma_LLS = e_LLS_te.std()
+        E_te_MSE_LLS = np.mean(e_LLS_te**2)
+        # R^2 (coefficient of determination)
+        R2_te_LLS = 1 - E_te_MSE_LLS/(np.std(y_te**2))
+        # Correlation coefficient
+        c_te_LLS = np.mean((y_te - y_te.mean())*(y_hat_LLS_te - y_hat_LLS_te.mean())
+                    )/(y_te.std()*y_hat_LLS_te.std())
+
+        rows = ['Training', 'Test']
+        cols = ['min', 'max', 'mean', 'std', 'MSE', 'R^2', 'corr_coeff']
+        p_LLS = np.array([
+            [E_tr_min_LLS, E_tr_max_LLS, E_tr_mu_LLS, E_tr_sigma_LLS, E_tr_MSE_LLS, R2_tr_LLS, c_tr_LLS],
+            [E_te_min_LLS, E_te_max_LLS, E_te_mu_LLS, E_te_sigma_LLS, E_te_MSE_LLS, R2_te_LLS, c_te_LLS]
+        ])
+        results_LLS = pd.DataFrame(p_LLS, columns=cols, index=rows)
+
+        return results_LLS
+
+
+    def errorAnalysis_SD(self, test_regressand, test_regressors):
+        """  """
+
+        e_SD_te, y_hat_SD_te = self.LLS_test(test_regressand, test_regressors)
+
+        y_te = test_regressand.values
+        X_te = test_regressors.values
+        
+        ### Analysis for SD
+        # Training set
+        E_tr_min_SD = self.SD_error_train.min()
+        E_tr_max_SD = self.SD_error_train.max()
+        E_tr_mu_SD = self.SD_error_train.mean()
+        E_tr_sigma_SD = self.SD_error_train.std()
+        E_tr_MSE_SD = np.mean(self.SD_error_train**2)
+        # R^2 (coefficient of determination)
+        R2_tr_SD = 1 - E_tr_MSE_SD/(np.std(self.regressand**2))
+        # Correlation coefficient
+        c_tr_SD = np.mean((self.regressand - self.regressand.mean())*(self.y_hat_SD - self.y_hat_SD.mean())
+                    )/(self.regressand.std()*self.y_hat_SD.std())
+
+        # Test set
+        E_te_min_SD = e_SD_te.min()
+        E_te_max_SD = e_SD_te.max()
+        E_te_mu_SD = e_SD_te.mean()
+        E_te_sigma_SD = e_SD_te.std()
+        E_te_MSE_SD = np.mean(e_SD_te**2)
+        # R^2 (coefficient of determination)
+        R2_te_SD = 1 - E_te_MSE_SD/(np.std(y_te**2))
+        # Correlation coefficient
+        c_te_SD = np.mean((y_te - y_te.mean())*(y_hat_SD_te - y_hat_SD_te.mean())
+                    )/(y_te.std()*y_hat_SD_te.std())
+        
+        rows = ['Training', 'Test']
+        cols = ['min', 'max', 'mean', 'std', 'MSE', 'R^2', 'corr_coeff']
+        p_SD = np.array([
+            [E_tr_min_SD, E_tr_max_SD, E_tr_mu_SD, E_tr_sigma_SD, E_tr_MSE_SD, R2_tr_SD, c_tr_SD],
+            [E_te_min_SD, E_te_max_SD, E_te_mu_SD, E_te_sigma_SD, E_te_MSE_SD, R2_te_SD, c_te_SD]
+        ])
+        results_SD = pd.DataFrame(p_SD, columns=cols, index=rows)
+
+        return results_SD
+
+    def errorAnalysis(self, test_regressand, test_regressors):
+        """  """
+
+        res_LLS = self.errorAnalysis_LLS(test_regressand, test_regressors)
+        res_SD = self.errorAnalysis_SD(test_regressand, test_regressors)
+
+        features = res_LLS.columns
+        # rows_LLS = res_LLS.index
+        # rows_SD = res_SD.index
+
+        p_LLS = res_LLS.values
+        p_SD = res_SD.values
+        p = np.concatenate((p_LLS, p_SD), axis=0)
+
+        # Create a multi-index DataFrame, containing all data
+        combinations = [
+            ('LLS', 'Training'), ('LLS', 'Test'),
+            ('SD', 'Training'), ('SD', 'Test')
+        ]
+        index_final = pd.MultiIndex.from_tuples(combinations, names=('Technique', 'Set'))
+
+        result_full = pd.DataFrame(p, index=index_final, columns=features)
+        
+        return result_full
+
+############################################################################################################
 
 # Define function of euclidean distance in F-dimension
 def dist_eval(element, train, dim):
