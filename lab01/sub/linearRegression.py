@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from lab01.lab01 import X_tr_norm
 import sub.minimization as mymin
 
 
@@ -9,15 +8,31 @@ class LinearRegression():
     """ 
     This class is used to handle linear regression problems by using 
     LLS or Steepest Descent
-    ----------------------------------------------------------------------
+    -----------------------------------------------------------------------------------
     Parameters:
     - regressand: Pandas DataFrame containing the regressand
     - regressors: Pandas Dataframe containing the regressors
-    ----------------------------------------------------------------------
+    -----------------------------------------------------------------------------------
     Attributes:
     - regressand: regressand vector - Np elements (np.Ndarray)
     - regressors: regressors matrix - Np x Nf (np.Ndarray)
-    - ... [TODO]
+    - regressing_features: list of the features of the regressors
+    - regressand_name: name of the regressand feature
+    - w_hat_LLS: solution of the linear regression using Linear Least Squares method
+    - w_hat_SD: solution of the linear regression using Steepest Descent algorithm
+    - y_hat_LLS: approximated regressand using LLS solution
+    - y_hat_SD: approximated regressand using SD solution
+    - y_hat_LLS_norm: normalized LLS solution
+    - y_hat_SD_norm: normalized SD solution
+    - mean_regressors: mean of the regressing features
+    - stdev_regressors: standard deviation of the regressing features
+    - regressors_norm: normalized regressors matrix (zero mean, unit variance)
+    - mean_regressand: mean of the (actual) regressand
+    - stdev_regressand: standard deviation of the regressand
+    - regressand_norm: normalized (training) regressand
+    - LLS_error_train: absolute error of the LLS solution (over the training set)
+    - SD_error_train: absolute error of the SD solution (over the training set)
+    -----------------------------------------------------------------------------------
     """
 
     def __init__(self, regressand, regressors, test_regressand, test_regressors):
@@ -82,6 +97,7 @@ class LinearRegression():
         self.LLS_error_train = np.zeros((self.Np,))
         self.SD_error_train = np.zeros((self.Np,))
 
+# TO BE REMOVED
         ## Test set ###################################################
         self.test_regressand = test_regressand.values
         self.test_regressors = test_regressors.values
@@ -103,8 +119,21 @@ class LinearRegression():
         # funzione che lo riceva come argomento a calcoli i risultati
         #
         # (Vedi LLS_test e SD_test)
+######
 
-    def solve_LLS(self, plot_w=False, imagepath="./lab01/img/LLS-w_hat.png"):
+    def solve_LLS(self, plot_w=False, save_png=False, imagepath="./lab01/img/LLS-w_hat.png"):
+        """
+        Solution of the Linear Regression by means of the Linear Least Squares method.
+        This function fills the attribute w_hat_LLS.
+        -----------------------------------------------------------------------------------
+        Optional parameters: 
+        - plot_w: (default False) if True, a plot of the weights vector (w_hat_LLS) is 
+          produced
+        - save_png: (default False) if True, the image will be saved in the specified path
+        - imagepath: (default: "./lab01/img/LLS-w_hat.png") path in which the image will 
+          be stored
+        -----------------------------------------------------------------------------------
+        """
         X_tr_norm = self.regressors_norm
         y_tr_norm = self.regressand_norm
         self.w_hat_LLS = np.linalg.inv(
@@ -127,10 +156,23 @@ class LinearRegression():
             plt.title('LLS - Optimized weights')
             plt.grid()
             plt.tight_layout()
-            plt.savefig(imagepath)
+            if save_png:
+                plt.savefig(imagepath)
             plt.show()
 
-    def solve_SteepestDescent(self, Nit=50, plot_w=False, imagepath="./lab01/img/SD-w_hat.png"):
+    def solve_SteepestDescent(self, Nit=50, plot_w=False, save_png=False, imagepath="./lab01/img/SD-w_hat.png"):
+        """
+        Solution of the Linear Regression by means of the Steepest Descent method.
+        This function fills the attribute w_hat_SD.
+        -----------------------------------------------------------------------------------
+        Optional parameters: 
+        - plot_w: (default False) if True, a plot of the weights vector (w_hat_SD) is 
+          produced
+        - save_png: (default False) if True, the image will be saved in the specified path
+        - imagepath: (default: "./lab01/img/SD-w_hat.png") path in which the image will 
+          be stored
+        -----------------------------------------------------------------------------------
+        """
         X_tr_norm = self.regressors_norm
         y_tr_norm = self.regressand_norm
         SD_problem = mymin.SteepestDescent(
@@ -154,11 +196,21 @@ class LinearRegression():
             plt.title('Steepest Descent - Optimized weights')
             plt.grid()
             plt.tight_layout()
-            plt.savefig(imagepath)
+            if save_png:
+                plt.savefig(imagepath)
             plt.show()
 
     def plot_w(self, save_png=False, imagepath="./lab01/img/w_hat_comparison.png"):
-        # TODO: plot comparison of the methods
+        """
+        This mathod produces a comparison plot between the weights vectors 
+        w_hat obtained with LLS and SD.
+        -----------------------------------------------------------------------------------
+        Optional parameters:
+        - save_png: (default False) if True, the image will be saved in the specified path
+        - imagepath: (default: "./lab01/img/w_hat_comparison.png") path in which the image 
+          will be stored
+        -----------------------------------------------------------------------------------
+        """
         null_vect = np.zeros((self.Nf,))
         if (self.w_hat_LLS == null_vect or self.w_hat_SD == null_vect):
             print("Error! The values of w_hat have not been all computed yet!\n")
@@ -176,10 +228,27 @@ class LinearRegression():
         plt.grid()
         plt.legend()
         plt.tight_layout()
-        plt.savefig(imagepath)
+        if save_png:
+            plt.savefig(imagepath)
         plt.show()
 
-    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, img_path='./lab01/img/LLS-err_hist.png'):
+    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, save_png=False, img_path='./lab01/img/LLS-err_hist.png'):
+        """
+        This method is used to estimate a test regressand given the test 
+        regressors and using the weights evaluated with the LLS method
+        -----------------------------------------------------------------------------------
+        Parameters:
+        - test_regressand: (Np,) vector
+        - test_regressors: (Np, Nf) matrix
+        -----------------------------------------------------------------------------------
+        Optional parameters
+        - plot_hist: (default False) if True, a histogram of the error values 
+          (test_regressand - y_hat_LLS) will be produced
+        - save_png: (default False) if True, the plot will be saved in the specified path
+        - img_path: (default './lab01/img/LLS-err_hist.png') path at which the histogram 
+          will be saved
+        -----------------------------------------------------------------------------------
+        """
         # Check w_hat_LLS already computed
         if (self.w_hat_LLS == np.zeros((self.Nf,))):
             self.solveLLS()
@@ -211,12 +280,29 @@ class LinearRegression():
             plt.grid()
             plt.title('LLS - Error histogram')
             plt.tight_layout()
-            plt.savefig(img_path)
+            if save_png:
+                plt.savefig(img_path)
             plt.show()
 
         return err_LLS_test
 
-    def SD_test(self, test_regressand, test_regressors, plot_hist=False, img_path='./lab01/img/SD-err_hist.png'):
+    def SD_test(self, test_regressand, test_regressors, plot_hist=False, save_png=False, img_path='./lab01/img/SD-err_hist.png'):
+        """
+        This method is used to estimate a test regressand given the test 
+        regressors and using the weights evaluated with the SD method
+        -----------------------------------------------------------------------------------
+        Parameters:
+        - test_regressand: (Np,) vector
+        - test_regressors: (Np, Nf) matrix
+        -----------------------------------------------------------------------------------
+        Optional parameters
+        - plot_hist: (default False) if True, a histogram of the error values 
+          (test_regressand - y_hat_SD) will be produced
+        - save_png: (default False) if True, the plot will be saved in the specified path
+        - img_path: (default './lab01/img/SD-err_hist.png') path at which the histogram 
+          will be saved
+        -----------------------------------------------------------------------------------
+        """
         # Check w_hat_SD already computed
         if (self.w_hat_SD == np.zeros((self.Nf,))):
             self.solveSD()
@@ -248,12 +334,32 @@ class LinearRegression():
             plt.grid()
             plt.title('SD - Error histogram')
             plt.tight_layout()
-            plt.savefig(img_path)
+            if save_png:
+                plt.savefig(img_path)
             plt.show()
 
         return err_SD_test
 
-    def test(self, test_regressand, test_regressors, plot_hist=False, img_path = './lab01/img/err_hist_compare.png'):
+    def test(self, test_regressand, test_regressors, plot_hist=False, save_png=False, img_path='./lab01/img/err_hist_compare.png'):
+        """
+        This method is used to compare the performance of Linear Regression carried out
+        with either LLS or Steepest Descent in terms of error on the regressand
+        -----------------------------------------------------------------------------------
+        Parameters:
+        - test_regressand: (Np,) vector
+        - test_regressors: (Np, Nf) matrix
+        -----------------------------------------------------------------------------------
+        Optional parameters
+        - plot_hist: (default False) if True, a histogram of the error values 
+          (test_regressand - y_hat_LLS) will be produced
+        - save_png: (default False) if True, the plot will be saved in the specified path
+        - img_path: (default './lab01/img/err_hist_compare.png') path at which the 
+          histogram will be saved
+        -----------------------------------------------------------------------------------
+        Returned variable(s):
+        - e: list containing the error vectors of LLS and SD over the test set
+        -----------------------------------------------------------------------------------
+        """
         # Call both LLS_test and SD_test and store the results (absolute errors) in order
         # to make the comparison between the two methods
 
