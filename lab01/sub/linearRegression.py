@@ -17,7 +17,6 @@ class LinearRegression():
     - regressand: regressand vector - Np elements (np.Ndarray)
     - regressors: regressors matrix - Np x Nf (np.Ndarray)
     - regressing_features: list of the features of the regressors
-    - regressand_name: name of the regressand feature
     - w_hat_LLS: solution of the linear regression using Linear Least Squares method
     - w_hat_SD: solution of the linear regression using Steepest Descent algorithm
     - y_hat_LLS: approximated regressand using LLS solution
@@ -51,7 +50,6 @@ class LinearRegression():
         self.regressors = regressors.values
 
         self.regressing_features = list(regressors.columns)
-        self.regressand_name = str(regressand.columns)
 
         # Initialize solutions
         self.w_hat_LLS = np.zeros((self.Nf,))
@@ -69,7 +67,7 @@ class LinearRegression():
         self.mean_regressors = self.regressors.mean(axis=0)
         self.stdev_regressors = self.regressors.std(axis=0)
 
-        if (self.mean_regressors != 0 or self.stdev_regressors != 1):
+        if (not all(self.mean_regressors == np.zeros((self.Nf,))) or not all(self.stdev_regressors == np.ones((self.Nf,)))):
             # Normalize
             self.regressors_norm = (
                 self.regressors - self.mean_regressors)/self.stdev_regressors
@@ -134,6 +132,7 @@ class LinearRegression():
         This function fills the attribute w_hat_SD.
         -----------------------------------------------------------------------------------
         Optional parameters: 
+        - Nit: number of iterations (stopping condition) for the Steepest Descent algorithm
         - plot_w: (default False) if True, a plot of the weights vector (w_hat_SD) is 
           produced
         - save_png: (default False) if True, the image will be saved in the specified path
@@ -180,9 +179,10 @@ class LinearRegression():
         -----------------------------------------------------------------------------------
         """
         null_vect = np.zeros((self.Nf,))
-        if (self.w_hat_LLS == null_vect or self.w_hat_SD == null_vect):
+        if (all(self.w_hat_LLS == null_vect) or all(self.w_hat_SD == null_vect)):
             print("Error! The values of w_hat have not been all computed yet!\n")
-            return
+            self.solve_LLS()
+            self.solve_SteepestDescent()
 
         nn = np.arange(self.Nf)
         plt.figure(figsize=(6, 4))
