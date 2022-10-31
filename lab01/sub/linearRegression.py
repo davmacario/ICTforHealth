@@ -458,6 +458,16 @@ class LinearRegression():
         return e
 
 
+def errorAnalysis(self, test_regressand, test_regressors):
+    error_list = self.test(test_regressand, test_regressors)
+
+    # Analysis for LLS
+    e_LLS = error_list[0]
+
+    # Analysis for SD
+    e_SD = error_list[1]
+
+
 # Define function of euclidean distance in F-dimension
 def dist_eval(element, train, dim):
     """

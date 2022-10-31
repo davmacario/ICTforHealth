@@ -114,87 +114,41 @@ Xsh = Xsh.sort_index(axis=0)
 # Shimmer:DDA
 ########################################################################
 
-#### Performing Regression #############################################
+#%% ### Performing Regression #############################################
 
-# First, perform NORMALIZATION in order to obtain zero mean and unit
-# variance in the features (which speeds up computation)
-# --> Subtract the mean and divide by std. dev. each feature
-
-# NOTE: features mean and standard dev. must be measured from the
-# training dataset!
+########################################################################################
+# From this point on, the script needs to be rewritten using the class
 
 # 50% of shuffled matrix is out training set, other 50% is test set
 Ntr = int(0.5*Np)
 Nte = Np - Ntr
 
 # Isolate training data
-X_tr = Xsh[0:Ntr]
-
-mm = X_tr.mean()        # Mean of the training data (one element for each feature)
-ss = X_tr.std()         # Std. dev. for each feature
-
-# Eval. mean and stdev for regressand UPDRS (we will need to de-normalize the result of
-# our estimations)
-my = mm.total_UPDRS     # Mean of total UPDRS
-sy = ss.total_UPDRS     # Std. dev. of total UPDRS
-
-# Normalize data
-Xsh_norm = (Xsh-mm)/ss
-ysh_norm = Xsh_norm['total_UPDRS']  # Extract regressand
-# Isolate regressors (remove total UPDRS and patient ID)
-# Also remove jitterDDP and Shimmer DDA
-Xsh_norm = Xsh_norm.drop(
+X_tr = Xsh[0:Ntr].drop(
     ['total_UPDRS', 'subject#', 'Jitter:DDP', 'Shimmer:DDA'], axis=1)
+y_tr = Xsh['total_UPDRS'][0:Ntr]
 
-# Obtain final NORMALIZED training and test datasets
-X_tr_norm = Xsh_norm[0:Ntr]
-X_te_norm = Xsh_norm[Ntr:]
+# Test set:
+X_te = Xsh[Ntr:].drop(
+    ['total_UPDRS', 'subject#', 'Jitter:DDP', 'Shimmer:DDA'], axis=1)
+y_te = Xsh['total_UPDRS'][Ntr:]
 
-y_tr_norm = ysh_norm[0:Ntr]
-y_te_norm = ysh_norm[Ntr:]
-
-# In order to solve the Linear Least Squares problem to find the
-# vector of weights w_hat, it is easier to work with Ndarrays
-# (NumPy)
-# Extract Ndarrays by means of the pandas.DataFrame.values attribute
-X_tr_norm = X_tr_norm.values
-y_tr_norm = y_tr_norm.values
-
-X_te_norm = X_te_norm.values
-y_te_norm = y_te_norm.values
-
-########################################################################################
-# From this point on, the script needs to be rewritten using the class
 # Create LinearRegression object
+LR = myLR.LinearRegression(y_tr, X_tr)
 
+# Solve Linear Regression using both LLS and Steepest Descent, then
+# compare the resulting w_hat by plotting
+LR.solve_LLS(plot_y=True, save_y=True)
+LR.solve_SteepestDescent(Nit=50, plot_y=True, save_y=True)
+LR.plot_w(save_png=True)
+
+# Performance evaluation - using test set
+LR.LLS_test(y_te, X_te, plot_hist=True, plot_y=True)
+LR.SD_test(y_te, X_te, plot_hist=True, plot_y=True)
+
+error_vect = LR.test(y_te, X_te, plot_hist=True, save_hist=True)
 
 # %%
-# Solve with LLS
-w_hat_LLS = np.linalg.inv(X_tr_norm.T@X_tr_norm)@(X_tr_norm.T@y_tr_norm)
-
-# %%
-# Solve regression with Steepest Descent
-w_SD = mymin.SteepestDescent(y_tr_norm, X_tr_norm)
-w_hat = w_SD.run(Nit=50)
-
-# Plot w_hat (look at potential problems, e.g., collinearity)
-regressors = list(Xsh_norm.columns)     # Get list of regressors
-# Number of features = length of w_hat = len(regressors)
-Nf = len(w_hat)
-
-nn = np.arange(Nf)
-
-plt.figure(figsize=(6, 4))
-plt.plot(nn, w_hat, '-o')
-ticks = nn
-# Each tick will have the label of the corresp. regressor
-plt.xticks(ticks, regressors, rotation=90)
-plt.ylabel(r'$\^w(n)$')     # Using LaTex notation
-plt.title('LLS - Optimized weights')
-plt.grid()
-plt.tight_layout()
-plt.savefig("./lab01/img/LLS-w_hat.png")
-plt.show()
 
 # Performance evaluation
 # Now, evaluate y_hat
