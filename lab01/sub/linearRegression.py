@@ -35,8 +35,8 @@ class LinearRegression():
     -----------------------------------------------------------------------------------
     """
 
-    def __init__(self, regressand, regressors, test_regressand, test_regressors):
-        # Check validity ()
+    def __init__(self, regressand, regressors):
+        # Check validity
         self.Np, self.Nf = regressors.values.shape
         if (regressand.values.shape[0] != self.Np):
             raise ValueError(
@@ -44,14 +44,6 @@ class LinearRegression():
 
         if (len(regressand.values.shape) > 1 and regressand.values.shape[1] > 1):
             raise ValueError("The regressand is not a 1D vector!\n")
-
-        if (test_regressand.values.shape != regressand.values.shape):
-            raise ValueError(
-                "The dimensions of the test regressand are different from the ones of the training set\n")
-
-        if (test_regressors.values.shape != regressors.values.shape):
-            raise ValueError(
-                "The dimensions of the test regressors are different from the ones of the training set\n")
 
         # Training set
 
@@ -96,30 +88,6 @@ class LinearRegression():
 
         self.LLS_error_train = np.zeros((self.Np,))
         self.SD_error_train = np.zeros((self.Np,))
-
-# TO BE REMOVED
-        ## Test set ###################################################
-        self.test_regressand = test_regressand.values
-        self.test_regressors = test_regressors.values
-
-        # Initialize approximated regressands (test)
-        self.y_hat_LLS_test = np.zeros((self.Np,))
-        self.y_hat_SD_test = np.zeros((self.Np,))
-
-        # Initialize normalized approximated regressands (test)
-        self.y_hat_LLS_norm_test = np.zeros((self.Np,))
-        self.y_hat_SD_norm_test = np.zeros((self.Np,))
-
-        self.test_regressand_norm = (
-            self.test_regressand - self.mean_regressand)/self.stdev_regressand
-        self.test_regressors_norm = (
-            self.test_regressors - self.mean_regressors)/self.stdev_regressors
-
-        # IDEA: non includere il test set come attributi, ma fare una
-        # funzione che lo riceva come argomento a calcoli i risultati
-        #
-        # (Vedi LLS_test e SD_test)
-######
 
     def solve_LLS(self, plot_w=False, save_png=False, imagepath="./lab01/img/LLS-w_hat.png"):
         """
@@ -248,10 +216,21 @@ class LinearRegression():
         - img_path: (default './lab01/img/LLS-err_hist.png') path at which the histogram 
           will be saved
         -----------------------------------------------------------------------------------
+        Returned variable(s):
+        - err_LLS_test: Ndarray of absolute error (regressand - y_hat_LLS)
+        -----------------------------------------------------------------------------------
         """
         # Check w_hat_LLS already computed
         if (self.w_hat_LLS == np.zeros((self.Nf,))):
             self.solveLLS()
+
+        if (test_regressand.values.shape != self.regressand.shape):
+            raise ValueError(
+                "The dimensions of the test regressand are different from the ones of the training set\n")
+
+        if (test_regressors.values.shape != self.regressors.shape):
+            raise ValueError(
+                "The dimensions of the test regressors are different from the ones of the training set\n")
 
         ## Test set ###################################################
         y_test = test_regressand.values
@@ -302,10 +281,21 @@ class LinearRegression():
         - img_path: (default './lab01/img/SD-err_hist.png') path at which the histogram 
           will be saved
         -----------------------------------------------------------------------------------
+        Returned variable(s):
+        - err_SD_test: Ndarray of absolute error (regressand - y_hat_SD)
+        -----------------------------------------------------------------------------------
         """
         # Check w_hat_SD already computed
         if (self.w_hat_SD == np.zeros((self.Nf,))):
             self.solveSD()
+
+        if (test_regressand.values.shape != self.regressand.shape):
+            raise ValueError(
+                "The dimensions of the test regressand are different from the ones of the training set\n")
+
+        if (test_regressors.values.shape != self.regressors.shape):
+            raise ValueError(
+                "The dimensions of the test regressors are different from the ones of the training set\n")
 
         ## Test set ###################################################
         y_test = test_regressand.values
@@ -382,6 +372,100 @@ class LinearRegression():
             plt.show()
 
         return e
+
+
+# Define function of euclidean distance in F-dimension
+def dist_eval(element, train, dim):
+    """
+    dist_eval: evaluate the distance (euclidean sense) between the test element
+    and each one of the elements of the training set
+    ------------------------------------------------------------------------------
+    - element: item whose distance needs to be computed
+    - train: training set; each row is an element and the first 'dim' columns are 
+      the features
+    - dim: number of features considered in the distance
+    ------------------------------------------------------------------------------
+    """
+
+    distance_vect = np.empty((train.shape[0], 2))
+    for ind2 in range(train.shape[0]):
+        distance_vect[ind2, 1] = train[ind2, dim]
+
+        tmp_sum = sum(np.power(element[0:dim-1] - train[ind2, 0:dim-1], 2))
+
+        distance_vect[ind2, 0] = np.sqrt(tmp_sum)
+
+    return distance_vect
+
+
+class LocalLR():
+    """ Local linear regression model """
+
+    def __init__(self, regressand, regressors, N_closest):
+        # Check validity
+        self.Np, self.Nf = regressors.values.shape
+        if (regressand.values.shape[0] != self.Np):
+            raise ValueError(
+                "The dimensions of regressand and regressors are not coherent!\n")
+
+        if (len(regressand.values.shape) > 1 and regressand.values.shape[1] > 1):
+            raise ValueError("The regressand is not a 1D vector!\n")
+
+        # Training set
+        self.regressand = regressand.values
+        self.regressors = regressors.values
+
+        self.regressing_features = list(regressors.columns)
+        self.regressand_name = str(regressand.columns)
+
+        # Initialize solutions
+        self.w_hat = np.zeros((self.Nf, self.Np))
+
+        # Initialize approximated regressands
+        self.y_hat = np.zeros((self.Np, self.Np))
+
+        # Initialize normalized approximated regressands
+        self.y_hat_norm = np.zeros((self.Np, self.Np))
+
+        # Define normalized values (on which the algorithm(s) will be performed)
+        self.mean_regressors = self.regressors.mean(axis=0)
+        self.stdev_regressors = self.regressors.std(axis=0)
+
+        if (self.mean_regressors != 0 or self.stdev_regressors != 1):
+            # Normalize
+            self.regressors_norm = (
+                self.regressors - self.mean_regressors)/self.stdev_regressors
+        else:
+            self.regressors_norm = self.regressors
+
+        self.mean_regressand = self.regressand.mean(axis=0)
+        self.stdev_regressand = self.regressand.std(axis=0)
+
+        if (self.mean_regressand != 0 or self.stdev_regressand != 1):
+            # Normalize
+            self.regressand_norm = (
+                self.regressand - self.mean_regressand)/self.stdev_regressand
+        else:
+            self.regressand_norm = self.regressand
+
+        self.LLS_error_train = np.zeros((self.Np,))
+        self.SD_error_train = np.zeros((self.Np,))
+
+        # Own
+        self.N = N_closest
+
+    def solve(self):
+        """ 
+        Approach:
+        - Iterate over each patient
+        - Find N closest
+        - Create new regressand and regressors
+            - Call new LinearRegression object
+        - Find w_hat, store it in a new column of self.w_hat (use SD)
+        - Find y_hat_norm and store it in a new column of self.y_hat_norm
+
+        """
+        pass
 
 
 if __name__ == '__main__':
