@@ -5,10 +5,6 @@ import sub.minimization as mymin
 import sub.linearRegression as myLR
 
 
-# TODO [1]: Introduce classes and methods for plotting graphs and generating
-# resulting dataframes
-
-# TODO [2]: Compare Steepest Descent and LLS results
 # TODO [3]: local linear regression model (find 10 neighbors)
 # TODO [4]: plot:
 #          - Estimated regressand vs. true regressand (de-norm)
@@ -115,9 +111,6 @@ Xsh = Xsh.sort_index(axis=0)
 ########################################################################
 
 #%% ### Performing Regression #############################################
-
-########################################################################################
-# From this point on, the script needs to be rewritten using the class
 
 # 50% of shuffled matrix is out training set, other 50% is test set
 Ntr = int(0.5*Np)
