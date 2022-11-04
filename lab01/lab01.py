@@ -12,6 +12,8 @@ import sub.linearRegression as myLR
 # TODO [5]: fill DataFrame with the measured min, max, mean, stdev, msv, R^2,
 # correlation coeff. for regression errors, comparing normal and local
 # linear regression
+#
+#
 # TODO [6]: run the program also with 20 values of the seed and average results
 
 
@@ -19,7 +21,7 @@ import sub.linearRegression as myLR
 
 # Read Parkinson's data file and store result in
 # a DataFrame (data structure defined by Pandas)
-x = pd.read_csv("lab01/data/parkinsons_updrs.csv")
+x = pd.read_csv("data/parkinsons_updrs.csv")
 
 # Check data
 x.describe().T
@@ -73,7 +75,7 @@ plt.yticks(np.arange(len(features)), features, rotation=0)
 plt.colorbar()
 plt.title("Correlation coefficients of the features")
 plt.tight_layout()
-plt.savefig("./lab01/img/corr_coeff.png")  # Save the figure
+plt.savefig("./img/corr_coeff.png")  # Save the figure
 plt.show()
 
 # Plot relationship between total UPDRS and the other features
@@ -83,7 +85,7 @@ plt.grid()
 plt.xticks(np.arange(len(features)), features, rotation=90)
 plt.title('Correlation coefficient between total UPDRS and other features')
 plt.tight_layout()
-plt.savefig("./lab01/img/corr_tot_UPDRS.png")
+plt.savefig("./img/corr_tot_UPDRS.png")
 plt.show()
 
 # Keep in mind: even though the patient ID seems correlated to the total
@@ -143,3 +145,25 @@ error_vect = LR.test(y_te, X_te, plot_hist=True, save_hist=True)
 
 finalResults = LR.errorAnalysis(y_te, X_te)
 print(finalResults)
+
+#%%############# PART 2 - LOCAL LINEAR REGRESSION ##############################
+N_closest = [20, 200]
+
+size = X_tr.shape[0]
+print(f"N. of patient in training set: {size}")
+
+for N in N_closest:
+    LocalLinearRegression = myLR.LocalLR(y_tr, X_tr, N)
+    train_error_matrix = LocalLinearRegression.solve(
+        plot_y=True, plot_hist=True)[2]
+
+    # plt.figure()
+    # plt.plot(train_error_matrix)
+    # plt.grid()
+    # plt.xticks(range(len(train_error_matrix)))
+    # plt.show()
+
+# Evaluate performance on test set
+    LocalLinearRegression.test(y_te, X_te, plot_y=True, plot_hist=True)
+# Loop over some values of N
+# [1, 10, 20, 40, 100, 500, 1000, 3000, 5000]

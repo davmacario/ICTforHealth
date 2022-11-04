@@ -50,6 +50,8 @@ class LinearRegression():
         self.regressors = regressors.values
 
         self.regressing_features = list(regressors.columns)
+        # NOTE: y is a 'Series' object, not a DataFrame, since it only contains 1 column
+        self.regressand_name = str(regressand.name)
 
         # Initialize solutions
         self.w_hat_LLS = np.zeros((self.Nf,))
@@ -66,6 +68,11 @@ class LinearRegression():
         # Define normalized values (on which the algorithm(s) will be performed)
         self.mean_regressors = self.regressors.mean(axis=0)
         self.stdev_regressors = self.regressors.std(axis=0)
+
+        if (0 in self.stdev_regressors):
+            print("One of the standard deviations is 0")
+            print(self.regressing_features)
+            print(self.stdev_regressors)
 
         if (not all(self.mean_regressors == np.zeros((self.Nf,))) or not all(self.stdev_regressors == np.ones((self.Nf,)))):
             # Normalize
@@ -87,7 +94,7 @@ class LinearRegression():
         self.LLS_error_train = np.zeros((self.Np,))
         self.SD_error_train = np.zeros((self.Np,))
 
-    def solve_LLS(self, plot_w=False, save_w=False, imagepath_w="./lab01/img/LLS-w_hat.png", plot_y=False, save_y=False, imagepath_y="./lab01/img/LLS-y_vs_y_hat.png"):
+    def solve_LLS(self, plot_w=False, save_w=False, imagepath_w="./img/LLS-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/LLS-y_vs_y_hat.png"):
         """
         Solution of the Linear Regression by means of the Linear Least Squares method.
         This function fills the attribute w_hat_LLS.
@@ -96,12 +103,12 @@ class LinearRegression():
         - plot_w: (default False) if True, a plot of the weights vector (w_hat_LLS) is 
           produced
         - save_w: (default False) if True, the image will be saved in the specified path
-        - imagepath_w: (default: "./lab01/img/LLS-w_hat.png") path in which the image will 
+        - imagepath_w: (default: "./img/LLS-w_hat.png") path in which the image will 
           be stored
         - plot_y: (default False) if True, plot the comparison between the actual 
           regressand and the approximated one (y_hat) obtained using LLS (de-normalized)
         - save_y: (default False) if True, save the image in the specified path
-        - imagepath_y: (default "./lab01/img/LLS-y_vs_y_hat.png") path in which to store
+        - imagepath_y: (default "./img/LLS-y_vs_y_hat.png") path in which to store
           the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         """
@@ -146,7 +153,7 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-    def solve_SteepestDescent(self, Nit=50, plot_w=False, save_w=False, imagepath_w="./lab01/img/SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./lab01/img/SD-y_vs_y_hat.png"):
+    def solve_SteepestDescent(self, Nit=50, plot_w=False, save_w=False, imagepath_w="./img/SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/SD-y_vs_y_hat.png"):
         """
         Solution of the Linear Regression by means of the Steepest Descent method.
         This function fills the attribute w_hat_SD.
@@ -156,12 +163,12 @@ class LinearRegression():
         - plot_w: (default False) if True, a plot of the weights vector (w_hat_SD) is 
           produced
         - save_w: (default False) if True, the image will be saved in the specified path
-        - imagepath_w: (default: "./lab01/img/SD-w_hat.png") path in which the image will 
+        - imagepath_w: (default: "./img/SD-w_hat.png") path in which the image will 
           be stored
         - plot_y: (default False) if True, plot the comparison between the actual 
           regressand and the approximated one (y_hat) obtained using SD (de-normalized)
         - save_y: (default False) if True, save the image in the specified path
-        - imagepath_y: (default "./lab01/img/SD-y_vs_y_hat.png") path in which to store
+        - imagepath_y: (default "./img/SD-y_vs_y_hat.png") path in which to store
           the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         """
@@ -207,14 +214,14 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-    def plot_w(self, save_png=False, imagepath="./lab01/img/w_hat_comparison.png"):
+    def plot_w(self, save_png=False, imagepath="./img/w_hat_comparison.png"):
         """
         This mathod produces a comparison plot between the weights vectors 
         w_hat obtained with LLS and SD.
         -----------------------------------------------------------------------------------
         Optional parameters:
         - save_png: (default False) if True, the image will be saved in the specified path
-        - imagepath: (default: "./lab01/img/w_hat_comparison.png") path in which the image 
+        - imagepath: (default: "./img/w_hat_comparison.png") path in which the image 
           will be stored
         -----------------------------------------------------------------------------------
         """
@@ -240,9 +247,7 @@ class LinearRegression():
             plt.savefig(imagepath)
         plt.show()
 
-    # def trainingSetPerformance(self, save_png=False, imagepath="./lab01/img/w_hat_comparison.png")
-
-    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./lab01/img/LLS-err_hist.png', plot_y=False, save_y=False, imagepath_y='./lab01/img/LLS_y_test_vs_y_hat_test.png'):
+    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/LLS-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/LLS_y_test_vs_y_hat_test.png'):
         """
         This method is used to estimate a test regressand given the test 
         regressors and using the weights evaluated with the LLS method
@@ -255,12 +260,12 @@ class LinearRegression():
         - plot_hist: (default False) if True, a histogram of the error values 
           (test_regressand - y_hat_LLS) will be produced
         - save_hist: (default False) if True, the plot will be saved in the specified path
-        - imagepath_hist: (default './lab01/img/LLS-err_hist.png') path at which the 
+        - imagepath_hist: (default './img/LLS-err_hist.png') path at which the 
           histogram will be saved
         - plot_y: (default False) if True, plot the comparison between the actual 
           regressand and the approximated one (y_hat) obtained using LLS (de-normalized)
         - save_y: (default False) if True, save the image in the specified path
-        - imagepath_y: (default './lab01/img/LLS_y_test_vs_y_hat_test.png') path in which 
+        - imagepath_y: (default './img/LLS_y_test_vs_y_hat_test.png') path in which 
           to store the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         Returned variable(s):
@@ -328,7 +333,7 @@ class LinearRegression():
 
         return err_LLS_test, y_hat_LLS_test
 
-    def SD_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./lab01/img/SD-err_hist.png', plot_y=False, save_y=False, imagepath_y='./lab01/img/SD_y_test_vs_y_hat_test.png'):
+    def SD_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/SD-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/SD_y_test_vs_y_hat_test.png'):
         """
         This method is used to estimate a test regressand given the test 
         regressors and using the weights evaluated with the SD method
@@ -341,12 +346,12 @@ class LinearRegression():
         - plot_hist: (default False) if True, a histogram of the error values 
           (test_regressand - y_hat_SD) will be produced
         - save_hist: (default False) if True, the plot will be saved in the specified path
-        - imagepath_hist: (default './lab01/img/SD-err_hist.png') path at which the 
+        - imagepath_hist: (default './img/SD-err_hist.png') path at which the 
           histogram will be saved
         - plot_y: (default False) if True, plot the comparison between the actual 
           regressand and the approximated one (y_hat) obtained using SD (de-normalized)
         - save_y: (default False) if True, save the image in the specified path
-        - imagepath_y: (default './lab01/img/SD_y_test_vs_y_hat_test.png') path in which 
+        - imagepath_y: (default './img/SD_y_test_vs_y_hat_test.png') path in which 
           to store the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         Returned variable(s):
@@ -414,7 +419,7 @@ class LinearRegression():
 
         return err_SD_test, y_hat_SD_test
 
-    def test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./lab01/img/err_hist_compare.png'):
+    def test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/err_hist_compare.png'):
         """
         This method is used to compare the performance of Linear Regression carried out
         with either LLS or Steepest Descent in terms of error on the regressand
@@ -427,7 +432,7 @@ class LinearRegression():
         - plot_hist: (default False) if True, a histogram of the error values 
           (test_regressand - y_hat_LLS) will be produced
         - save_hist: (default False) if True, the plot will be saved in the specified path
-        - imagepath_hist: (default './lab01/img/err_hist_compare.png') path at which the 
+        - imagepath_hist: (default './img/err_hist_compare.png') path at which the 
           histogram will be saved
         -----------------------------------------------------------------------------------
         Returned variable(s):
@@ -437,8 +442,10 @@ class LinearRegression():
         # Call both LLS_test and SD_test and store the results (absolute errors) in order
         # to make the comparison between the two methods
 
-        err_LLS_test, y_hat_LLS_te = self.LLS_test(test_regressand, test_regressors)
-        err_SD_test, y_hat_SD_te = self.SD_test(test_regressand, test_regressors)
+        err_LLS_test, y_hat_LLS_te = self.LLS_test(
+            test_regressand, test_regressors)
+        err_SD_test, y_hat_SD_te = self.SD_test(
+            test_regressand, test_regressors)
 
         e = [err_LLS_test, err_SD_test]
         y_hat_list = [y_hat_LLS_te, y_hat_SD_te]
@@ -460,15 +467,15 @@ class LinearRegression():
 
         return e, y_hat_list
 
-
     def errorAnalysis_LLS(self, test_regressand, test_regressors):
         """  """
-        e_LLS_te, y_hat_LLS_te = self.LLS_test(test_regressand, test_regressors)
+        e_LLS_te, y_hat_LLS_te = self.LLS_test(
+            test_regressand, test_regressors)
 
         y_te = test_regressand.values
         X_te = test_regressors.values
 
-        ### Analysis for LLS
+        # Analysis for LLS
         # Training set
         E_tr_min_LLS = self.LLS_error_train.min()
         E_tr_max_LLS = self.LLS_error_train.max()
@@ -479,7 +486,7 @@ class LinearRegression():
         R2_tr_LLS = 1 - E_tr_MSE_LLS/(np.std(self.regressand**2))
         # Correlation coefficient
         c_tr_LLS = np.mean((self.regressand - self.regressand.mean())*(self.y_hat_LLS - self.y_hat_LLS.mean())
-                    )/(self.regressand.std()*self.y_hat_LLS.std())
+                           )/(self.regressand.std()*self.y_hat_LLS.std())
 
         # Test set
         E_te_min_LLS = e_LLS_te.min()
@@ -491,18 +498,19 @@ class LinearRegression():
         R2_te_LLS = 1 - E_te_MSE_LLS/(np.std(y_te**2))
         # Correlation coefficient
         c_te_LLS = np.mean((y_te - y_te.mean())*(y_hat_LLS_te - y_hat_LLS_te.mean())
-                    )/(y_te.std()*y_hat_LLS_te.std())
+                           )/(y_te.std()*y_hat_LLS_te.std())
 
         rows = ['Training', 'Test']
         cols = ['min', 'max', 'mean', 'std', 'MSE', 'R^2', 'corr_coeff']
         p_LLS = np.array([
-            [E_tr_min_LLS, E_tr_max_LLS, E_tr_mu_LLS, E_tr_sigma_LLS, E_tr_MSE_LLS, R2_tr_LLS, c_tr_LLS],
-            [E_te_min_LLS, E_te_max_LLS, E_te_mu_LLS, E_te_sigma_LLS, E_te_MSE_LLS, R2_te_LLS, c_te_LLS]
+            [E_tr_min_LLS, E_tr_max_LLS, E_tr_mu_LLS,
+                E_tr_sigma_LLS, E_tr_MSE_LLS, R2_tr_LLS, c_tr_LLS],
+            [E_te_min_LLS, E_te_max_LLS, E_te_mu_LLS,
+                E_te_sigma_LLS, E_te_MSE_LLS, R2_te_LLS, c_te_LLS]
         ])
         results_LLS = pd.DataFrame(p_LLS, columns=cols, index=rows)
 
         return results_LLS
-
 
     def errorAnalysis_SD(self, test_regressand, test_regressors):
         """  """
@@ -511,8 +519,8 @@ class LinearRegression():
 
         y_te = test_regressand.values
         X_te = test_regressors.values
-        
-        ### Analysis for SD
+
+        # Analysis for SD
         # Training set
         E_tr_min_SD = self.SD_error_train.min()
         E_tr_max_SD = self.SD_error_train.max()
@@ -523,7 +531,7 @@ class LinearRegression():
         R2_tr_SD = 1 - E_tr_MSE_SD/(np.std(self.regressand**2))
         # Correlation coefficient
         c_tr_SD = np.mean((self.regressand - self.regressand.mean())*(self.y_hat_SD - self.y_hat_SD.mean())
-                    )/(self.regressand.std()*self.y_hat_SD.std())
+                          )/(self.regressand.std()*self.y_hat_SD.std())
 
         # Test set
         E_te_min_SD = e_SD_te.min()
@@ -535,13 +543,15 @@ class LinearRegression():
         R2_te_SD = 1 - E_te_MSE_SD/(np.std(y_te**2))
         # Correlation coefficient
         c_te_SD = np.mean((y_te - y_te.mean())*(y_hat_SD_te - y_hat_SD_te.mean())
-                    )/(y_te.std()*y_hat_SD_te.std())
-        
+                          )/(y_te.std()*y_hat_SD_te.std())
+
         rows = ['Training', 'Test']
         cols = ['min', 'max', 'mean', 'std', 'MSE', 'R^2', 'corr_coeff']
         p_SD = np.array([
-            [E_tr_min_SD, E_tr_max_SD, E_tr_mu_SD, E_tr_sigma_SD, E_tr_MSE_SD, R2_tr_SD, c_tr_SD],
-            [E_te_min_SD, E_te_max_SD, E_te_mu_SD, E_te_sigma_SD, E_te_MSE_SD, R2_te_SD, c_te_SD]
+            [E_tr_min_SD, E_tr_max_SD, E_tr_mu_SD,
+                E_tr_sigma_SD, E_tr_MSE_SD, R2_tr_SD, c_tr_SD],
+            [E_te_min_SD, E_te_max_SD, E_te_mu_SD,
+                E_te_sigma_SD, E_te_MSE_SD, R2_te_SD, c_te_SD]
         ])
         results_SD = pd.DataFrame(p_SD, columns=cols, index=rows)
 
@@ -566,16 +576,19 @@ class LinearRegression():
             ('LLS', 'Training'), ('LLS', 'Test'),
             ('SD', 'Training'), ('SD', 'Test')
         ]
-        index_final = pd.MultiIndex.from_tuples(combinations, names=('Technique', 'Set'))
+        index_final = pd.MultiIndex.from_tuples(
+            combinations, names=('Technique', 'Set'))
 
         result_full = pd.DataFrame(p, index=index_final, columns=features)
-        
+
         return result_full
 
 ############################################################################################################
 
 # Define function of euclidean distance in F-dimension
-def dist_eval(element, train, dim):
+
+
+def dist_eval(element, train, dim=np.NaN):
     """
     dist_eval: evaluate the distance (euclidean sense) between the test element
     and each one of the elements of the training set
@@ -583,17 +596,18 @@ def dist_eval(element, train, dim):
     - element: item whose distance needs to be computed
     - train: training set; each row is an element and the first 'dim' columns are 
       the features
-    - dim: number of features considered in the distance
+    - dim: number of features considered in the distance (in this case )
     ------------------------------------------------------------------------------
     """
+    if dim == np.NaN:
+        # The number of features needs to be inferred
+        dim = train.shape[1]
 
-    distance_vect = np.empty((train.shape[0], 2))
+    distance_vect = np.empty((train.shape[0],))
+
     for ind2 in range(train.shape[0]):
-        distance_vect[ind2, 1] = train[ind2, dim]
-
-        tmp_sum = sum(np.power(element[0:dim-1] - train[ind2, 0:dim-1], 2))
-
-        distance_vect[ind2, 0] = np.sqrt(tmp_sum)
+        tmp_sum = sum(np.power(element - train[ind2, :], 2))
+        distance_vect[ind2] = np.sqrt(tmp_sum)
 
     return distance_vect
 
@@ -616,56 +630,217 @@ class LocalLR():
         self.regressors = regressors.values
 
         self.regressing_features = list(regressors.columns)
-        self.regressand_name = str(regressand.columns)
+        # NOTE: y is a 'series' object, not a dataframe, since it only contains 1 column
+        self.regressand_name = str(regressand.name)
 
-        # Initialize solutions
+        # Initialize solutions (will be SD) - each w_hat will be one column of this matrix
         self.w_hat = np.zeros((self.Nf, self.Np))
 
         # Initialize approximated regressands
-        self.y_hat = np.zeros((self.Np, self.Np))
+        self.y_hat = np.zeros((self.Np, ))
 
+        ###################################### Probably don't need this ###################################
         # Initialize normalized approximated regressands
-        self.y_hat_norm = np.zeros((self.Np, self.Np))
+        # self.y_hat_norm = np.zeros((N_closest, self.Np))
 
-        # Define normalized values (on which the algorithm(s) will be performed)
-        self.mean_regressors = self.regressors.mean(axis=0)
-        self.stdev_regressors = self.regressors.std(axis=0)
+        # # Define normalized values (on which the algorithm(s) will be performed)
+        # self.mean_regressors = self.regressors.mean(axis=0)
+        # self.stdev_regressors = self.regressors.std(axis=0)
 
-        if (self.mean_regressors != 0 or self.stdev_regressors != 1):
-            # Normalize
-            self.regressors_norm = (
-                self.regressors - self.mean_regressors)/self.stdev_regressors
-        else:
-            self.regressors_norm = self.regressors
+        # if (not all(self.mean_regressors == np.zeros((self.Nf,))) or not all(self.stdev_regressors == np.ones((self.Nf,)))):
+        #     # Normalize
+        #     self.regressors_norm = (
+        #         self.regressors - self.mean_regressors)/self.stdev_regressors
+        # else:
+        #     self.regressors_norm = self.regressors
 
-        self.mean_regressand = self.regressand.mean(axis=0)
-        self.stdev_regressand = self.regressand.std(axis=0)
+        # self.mean_regressand = self.regressand.mean(axis=0)
+        # self.stdev_regressand = self.regressand.std(axis=0)
 
-        if (self.mean_regressand != 0 or self.stdev_regressand != 1):
-            # Normalize
-            self.regressand_norm = (
-                self.regressand - self.mean_regressand)/self.stdev_regressand
-        else:
-            self.regressand_norm = self.regressand
+        # if (self.mean_regressand != 0 or self.stdev_regressand != 1):
+        #     # Normalize
+        #     self.regressand_norm = (
+        #         self.regressand - self.mean_regressand)/self.stdev_regressand
+        # else:
+        #     self.regressand_norm = self.regressand
 
-        self.LLS_error_train = np.zeros((self.Np,))
+        ##################################################################################################
+
+        # The error on the training set will be
         self.SD_error_train = np.zeros((self.Np,))
 
-        # Own
+        ###
         self.N = N_closest
 
-    def solve(self):
+    def solve(self, plot_y=False, save_y=False, imagepath_y="./img/LOCAL_training-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL-train_err_hist.png'):
         """ 
+        Solution of the Local Linear Regression given N closest neighbors
+        -----------------------------------------------------------------------------------
         Approach:
         - Iterate over each patient
         - Find N closest
         - Create new regressand and regressors
             - Call new LinearRegression object
-        - Find w_hat, store it in a new column of self.w_hat (use SD)
+        - Find w_hat, store it in a new column of self.w_hat (use SD - as required)
         - Find y_hat_norm and store it in a new column of self.y_hat_norm
-
+        -----------------------------------------------------------------------------------
         """
-        pass
+        Np = self.Np
+        Nf = self.Nf
+        N = self.N
+
+        X = np.copy(self.regressors)
+        y = np.copy(self.regressand)
+
+        for i in range(Np):
+            # Isolate current patient
+            x_curr = X[i, :]
+            y_curr = y[i]
+
+            distances = dist_eval(x_curr, X, dim=Nf)
+
+            # Find elements with minimum distance (i.e., indices of the N closest elements)
+            sorted_vect = np.argsort(distances)
+
+            # Find the K closest elements
+            X_closest = np.empty((N, Nf))
+            y_closest = np.empty((N,))
+
+            for ind1 in range(N):
+                # Fill X_closest
+                X_closest[ind1, :] = np.copy(X[sorted_vect[ind1], :])
+                y_closest[ind1] = np.copy(y[sorted_vect[ind1]])
+
+            # Create new LinearRegression object with X_closest and y_closest
+            # BUT: need dataframes
+            X_closest_df = pd.DataFrame(
+                X_closest, columns=self.regressing_features)
+            y_closest_df = pd.Series(
+                y_closest, name=self.regressand_name)
+
+            LR_closest = LinearRegression(y_closest_df, X_closest_df)
+            # Update w_hat_SD
+            LR_closest.solve_SteepestDescent()
+
+            # Get weights for Local LR
+            w_hat_SD_curr = LR_closest.w_hat_SD
+            # Store it in column i of self.w_hat
+            self.w_hat[:, i] = np.copy(w_hat_SD_curr)
+
+            # Get y_hat of the current patient (x_curr)
+            y_hat_curr = np.reshape(
+                x_curr, (1, len(x_curr)))@np.reshape(w_hat_SD_curr, (len(w_hat_SD_curr), 1))
+            # Store this result in element i of the vector self.y_hat
+            self.y_hat[i] = np.copy(y_hat_curr)
+
+            # Find error on the training set
+            error_curr = y_hat_curr - y_curr
+            # Place it in position i
+            self.SD_error_train[i] = np.copy(error_curr)
+
+        # Plot y vs y_hat (copy before)
+        if plot_y:
+            plt.figure(figsize=(6, 4))
+            plt.plot(self.regressand, self.y_hat, '.')   # Place dots
+            v = plt.axis()
+            # Plot 45deg diagonal line
+            plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
+            plt.xlabel(r'$y$')
+            plt.ylabel(r'$\^y$', rotation=0)
+            plt.grid()
+            plt.title("Local Linear Regression - Training validation set")
+            plt.tight_layout()
+            if save_y:
+                plt.savefig(imagepath_y)
+            plt.show()
+
+        # Plot error histogram
+        if plot_hist:
+            e = self.SD_error_train
+
+            plt.figure(figsize=(6, 4))
+            plt.hist(e, bins=50, density=True, histtype='bar',
+                     label='training')
+            plt.xlabel(r"$e = y - \^y$")
+            plt.ylabel(r'$P(e$ in bin$)$')
+            plt.legend()
+            plt.grid()
+            plt.title('Local Linear Regression - Training error histogram')
+            plt.tight_layout()
+            if save_hist:
+                plt.savefig(imagepath_hist)
+            plt.show()
+
+        return self.w_hat, self.y_hat, self.SD_error_train
+
+    def test(self, test_regressand, test_regressors, plot_y=False, save_y=False, imagepath_y="./img/LOCAL_test-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL-test_err_hist.png'):
+        """ Test local regression model """
+        Np_test = test_regressand.shape[0]
+
+        # Check dimensions
+        if test_regressors.shape[0] != Np_test:
+            raise ValueError(
+                "Error! The number of patients in the test regressors matrix is different from the one in the regressand!")
+
+        # Check that the test set has the same number of elements as the
+        # total number of columns of w_hat (matrix)
+        if (Np_test != self.Np):
+            raise ValueError(
+                f"Error! The test set must contain as many elements as the training set ({self.Np})!")
+
+        # Check whether we already computed the matrix w_hats
+        if (self.w_hat == 0).all():
+            # If not computed, then evaluate it
+            self.solve()
+
+        y_test = test_regressand.values
+        X_test = test_regressors.values
+
+        y_hat_test = np.zeros((Np_test,))
+
+        for i in range(Np_test):
+            # Take one row of the test regressors (one patient) and multiply it
+            # with the corresponding column of the matrix of w_hat
+            y_hat_test[i] = X_test[i, :]@self.w_hat[:, i]
+
+        err_test = y_test - y_hat_test
+
+        # Plot y vs. y_hat
+        if plot_y:
+            plt.figure(figsize=(6, 4))
+            plt.plot(y_test, y_hat_test, '.')   # Place dots
+            v = plt.axis()
+            # Plot 45deg diagonal line
+            plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
+            plt.xlabel(r'$y$')
+            plt.ylabel(r'$\^y$', rotation=0)
+            plt.grid()
+            plt.title("Local Linear Regression - Test set")
+            plt.tight_layout()
+            if save_y:
+                plt.savefig(imagepath_y)
+            plt.show()
+
+        # Plot error histogram
+        if plot_hist:
+            e = err_test
+
+            plt.figure(figsize=(6, 4))
+            plt.hist(e, bins=50, density=True, histtype='bar',
+                     label='training')
+            plt.xlabel(r"$e = y - \^y$")
+            plt.ylabel(r'$P(e$ in bin$)$')
+            plt.legend()
+            plt.grid()
+            plt.title('Local Linear Regression - Test error histogram')
+            plt.tight_layout()
+            if save_hist:
+                plt.savefig(imagepath_hist)
+            plt.show()
+
+    # TODO:
+    # Define a function for comparing errors on test and train sets (histogram) +
+    # Creating the output DataFrame
 
 
 if __name__ == '__main__':
