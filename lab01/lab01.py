@@ -144,6 +144,7 @@ LR.SD_test(y_te, X_te, plot_hist=True, plot_y=True)
 error_vect = LR.test(y_te, X_te, plot_hist=True, save_hist=True)
 
 finalResults = LR.errorAnalysis(y_te, X_te)
+print("\nError analysis:")
 print(finalResults)
 
 #%%############# PART 2 - LOCAL LINEAR REGRESSION ##############################
@@ -165,5 +166,6 @@ for N in N_closest:
 
 # Evaluate performance on test set
     LocalLinearRegression.test(y_te, X_te, plot_y=True, plot_hist=True)
+    LocalLinearRegression.errorAnalysis(y_te, X_te, plot_hist=True)
 # Loop over some values of N
 # [1, 10, 20, 40, 100, 500, 1000, 3000, 5000]

@@ -68,6 +68,7 @@ class LinearRegression():
         # Define normalized values (on which the algorithm(s) will be performed)
         self.mean_regressors = self.regressors.mean(axis=0)
         self.stdev_regressors = self.regressors.std(axis=0)
+        # WHAT TO DO WHEN STDEV=0?
 
         if (0 in self.stdev_regressors):
             print("One of the standard deviations is 0")
@@ -483,7 +484,7 @@ class LinearRegression():
         E_tr_sigma_LLS = self.LLS_error_train.std()
         E_tr_MSE_LLS = np.mean(self.LLS_error_train**2)
         # R^2 (coefficient of determination)
-        R2_tr_LLS = 1 - E_tr_MSE_LLS/(np.std(self.regressand**2))
+        R2_tr_LLS = 1 - E_tr_MSE_LLS/(np.std(self.regressand)**2)
         # Correlation coefficient
         c_tr_LLS = np.mean((self.regressand - self.regressand.mean())*(self.y_hat_LLS - self.y_hat_LLS.mean())
                            )/(self.regressand.std()*self.y_hat_LLS.std())
@@ -495,7 +496,7 @@ class LinearRegression():
         E_te_sigma_LLS = e_LLS_te.std()
         E_te_MSE_LLS = np.mean(e_LLS_te**2)
         # R^2 (coefficient of determination)
-        R2_te_LLS = 1 - E_te_MSE_LLS/(np.std(y_te**2))
+        R2_te_LLS = 1 - E_te_MSE_LLS/(np.std(y_te)**2)
         # Correlation coefficient
         c_te_LLS = np.mean((y_te - y_te.mean())*(y_hat_LLS_te - y_hat_LLS_te.mean())
                            )/(y_te.std()*y_hat_LLS_te.std())
@@ -528,7 +529,7 @@ class LinearRegression():
         E_tr_sigma_SD = self.SD_error_train.std()
         E_tr_MSE_SD = np.mean(self.SD_error_train**2)
         # R^2 (coefficient of determination)
-        R2_tr_SD = 1 - E_tr_MSE_SD/(np.std(self.regressand**2))
+        R2_tr_SD = 1 - E_tr_MSE_SD/(np.std(self.regressand)**2)
         # Correlation coefficient
         c_tr_SD = np.mean((self.regressand - self.regressand.mean())*(self.y_hat_SD - self.y_hat_SD.mean())
                           )/(self.regressand.std()*self.y_hat_SD.std())
@@ -540,7 +541,7 @@ class LinearRegression():
         E_te_sigma_SD = e_SD_te.std()
         E_te_MSE_SD = np.mean(e_SD_te**2)
         # R^2 (coefficient of determination)
-        R2_te_SD = 1 - E_te_MSE_SD/(np.std(y_te**2))
+        R2_te_SD = 1 - E_te_MSE_SD/(np.std(y_te)**2)
         # Correlation coefficient
         c_te_SD = np.mean((y_te - y_te.mean())*(y_hat_SD_te - y_hat_SD_te.mean())
                           )/(y_te.std()*y_hat_SD_te.std())
@@ -838,9 +839,73 @@ class LocalLR():
                 plt.savefig(imagepath_hist)
             plt.show()
 
+        return err_test, y_hat_test
+
     # TODO:
     # Define a function for comparing errors on test and train sets (histogram) +
     # Creating the output DataFrame
+    def errorAnalysis(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL_error-hist_train-vs-test.png'):
+        if (self.w_hat == 0).all():
+            self.solve()
+
+        err_test, y_hat_te = self.test(test_regressand, test_regressors)
+
+        err = [self.SD_error_train, err_test]
+
+        if plot_hist:
+            plt.figure(figsize=(6, 4))
+            plt.hist(err, bins=50, density=True, histtype='bar',
+                     label=['Training set', 'Test set'])
+            plt.xlabel(r"$e = y - \^y$")
+            plt.ylabel(r'$P(e$ in bin$)$')
+            plt.legend()
+            plt.grid()
+            plt.title(
+                'Local Linear Regression error histogram - comparison between the training and test set')
+            plt.tight_layout()
+            if save_hist:
+                plt.savefig(imagepath_hist)
+            plt.show()
+
+        # Produce DF
+        y_te = test_regressand.values
+
+        # Analysis for SD
+        # Training set
+        E_tr_min = self.SD_error_train.min()
+        E_tr_max = self.SD_error_train.max()
+        E_tr_mu = self.SD_error_train.mean()
+        E_tr_sigma = self.SD_error_train.std()
+        E_tr_MSE = np.mean(self.SD_error_train**2)
+        # R^2 (coefficient of determination)
+        R2_tr = 1 - E_tr_MSE/(np.std(self.regressand)**2)
+        # Correlation coefficient
+        c_tr = np.mean((self.regressand - self.regressand.mean())*(self.y_hat - self.y_hat.mean())
+                       )/(self.regressand.std()*self.y_hat.std())
+
+        # Test set
+        E_te_min = err_test.min()
+        E_te_max = err_test.max()
+        E_te_mu = err_test.mean()
+        E_te_sigma = err_test.std()
+        E_te_MSE = np.mean(err_test**2)
+        # R^2 (coefficient of determination)
+        R2_te = 1 - E_te_MSE/(np.std(y_te)**2)
+        # Correlation coefficient
+        c_te = np.mean((y_te - y_te.mean())*(y_hat_te - y_hat_te.mean())
+                       )/(y_te.std()*y_hat_te.std())
+
+        rows = ['Training', 'Test']
+        cols = ['min', 'max', 'mean', 'std', 'MSE', 'R^2', 'corr_coeff']
+        p_SD = np.array([
+            [E_tr_min, E_tr_max, E_tr_mu,
+                E_tr_sigma, E_tr_MSE, R2_tr, c_tr],
+            [E_te_min, E_te_max, E_te_mu,
+                E_te_sigma, E_te_MSE, R2_te, c_te]
+        ])
+        results_local = pd.DataFrame(p_SD, columns=cols, index=rows)
+
+        return results_local
 
 
 if __name__ == '__main__':
