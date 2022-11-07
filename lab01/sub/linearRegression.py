@@ -68,7 +68,8 @@ class LinearRegression():
         # Define normalized values (on which the algorithm(s) will be performed)
         self.mean_regressors = self.regressors.mean(axis=0)
         self.stdev_regressors = self.regressors.std(axis=0)
-        # WHAT TO DO WHEN STDEV=0?
+        # WHAT TO DO WHEN STDEV=0? - set the standard deviation to a low value
+        self.stdev_regressors[self.stdev_regressors == 0] = 1e-8
 
         if (0 in self.stdev_regressors):
             print("One of the standard deviations is 0")
@@ -84,6 +85,8 @@ class LinearRegression():
 
         self.mean_regressand = self.regressand.mean(axis=0)
         self.stdev_regressand = self.regressand.std(axis=0)
+        if self.stdev_regressand == 0:
+            self.stdev_regressand = 1e-8
 
         if (self.mean_regressand != 0 or self.stdev_regressand != 1):
             # Normalize
@@ -154,7 +157,7 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-    def solve_SteepestDescent(self, Nit=50, plot_w=False, save_w=False, imagepath_w="./img/SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/SD-y_vs_y_hat.png"):
+    def solve_SteepestDescent(self, stoppingCondition='iterations', Nit=50, plot_w=False, save_w=False, imagepath_w="./img/SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/SD-y_vs_y_hat.png"):
         """
         Solution of the Linear Regression by means of the Steepest Descent method.
         This function fills the attribute w_hat_SD.
@@ -177,7 +180,8 @@ class LinearRegression():
         y_tr_norm = self.regressand_norm
         SD_problem = mymin.SteepestDescent(
             self.regressand_norm, self.regressors_norm)
-        self.w_hat_SD = SD_problem.run(Nit)
+        self.w_hat_SD = SD_problem.run(
+            stoppingCondition=stoppingCondition, Nit=Nit)
 
         self.y_hat_SD_norm = X_tr_norm@(self.w_hat_SD)
         self.y_hat_SD = self.stdev_regressand * \

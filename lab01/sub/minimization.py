@@ -134,18 +134,24 @@ class SteepestDescent(SolveMinProbl):
     This class is used to solve minimization problems using the steepest descent method
     """
 
-    def run(self, Nit=10):
+    def run(self, stoppingCondition='iterations', Nit=20, eps=1e-10):
         """ 
-        Solve the minimization problem
-
-        Nit: number of iterations
+        -------------------------------------------------------------------------
+        Solve the minimization problem with the Steepest Descent algorithm
+        -------------------------------------------------------------------------
+        2 stopping conditions:
+        - 'iterations' (default): stop at a specific inumber of iterations (Nit)
+        - 'epsilon': stop when the norm of the gradient vector is lower than a 
+          specific value (eps)
+        -------------------------------------------------------------------------
+        Nit: number of iterations (default: 20)
+        eps: maximum gradient norm (default: 1e-10)
+        -------------------------------------------------------------------------
         """
         A = self.matr
         y = self.vect
         Np = self.Np
         Nf = self.Nf
-
-        self.err = np.zeros((Nit, 2), dtype=float)
 
         # In the quadreatic problem, the Hessian matrix is constant
         Hess = 2*(A.T@A)
@@ -153,21 +159,47 @@ class SteepestDescent(SolveMinProbl):
         # Initial w: random
         w = np.random.rand(self.Nf,)
 
-        for it in range(Nit):
+        if stoppingCondition == 'iterations':
+            self.err = np.zeros((Nit, 2), dtype=float)
+            for it in range(Nit):
 
-            grad = 2*A.T@(A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))
+                grad = 2*A.T@(A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))
 
-            # gamma = (np.linalg.norm(grad)**2)/((grad.T@Hess)@grad)
-            numer = np.linalg.norm(grad)**2
-            denom = float((grad.T@Hess)@grad)
+                # gamma = (np.linalg.norm(grad)**2)/((grad.T@Hess)@grad)
+                numer = np.linalg.norm(grad)**2
+                denom = float((grad.T@Hess)@grad)
 
-            gamma = numer/denom
+                gamma = numer/denom
 
-            w = w - gamma*(grad.reshape(len(grad),))
+                w = w - gamma*(grad.reshape(len(grad),))
 
-            self.err[it, 0] = it
-            self.err[it, 1] = np.linalg.norm(
-                A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))**2
+                newrow = [it, np.linalg.norm(
+                    A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))**2]
+
+                self.err[it, :] = np.copy(newrow)
+
+        elif stoppingCondition == 'epsilon':
+            grad = np.ones((Nf,))
+            errList = []
+            iter = 0
+            while np.linalg.norm(grad) >= eps:
+                grad = 2*A.T@(A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))
+
+                # gamma = (np.linalg.norm(grad)**2)/((grad.T@Hess)@grad)
+                numer = np.linalg.norm(grad)**2
+                denom = float((grad.T@Hess)@grad)
+
+                gamma = numer/denom
+
+                w = w - gamma*(grad.reshape(len(grad),))
+
+                newrow = [iter, np.linalg.norm(
+                    A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))**2]
+                errList.append(newrow)
+
+                iter += 1
+            # By appending to a list and only then creating an array the code runs noticeably faster
+            self.err = np.array(errList)
 
         self.sol = w.reshape(len(w),)
         self.min = self.err[-1, 1]
@@ -210,6 +242,6 @@ if __name__ == '__main__':
     w = np.random.randn(Nf,)
     y = A@w
     m = SteepestDescent(y, A)
-    m.run()
+    m.run(stoppingCondition='epsilon')
     m.print_result('Steepest Descent')
     m.plot_w_hat('Steepest Descent')

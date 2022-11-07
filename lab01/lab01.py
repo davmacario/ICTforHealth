@@ -134,7 +134,7 @@ LR = myLR.LinearRegression(y_tr, X_tr)
 # Solve Linear Regression using both LLS and Steepest Descent, then
 # compare the resulting w_hat by plotting
 LR.solve_LLS(plot_y=True, save_y=True)
-LR.solve_SteepestDescent(Nit=50, plot_y=True, save_y=True)
+LR.solve_SteepestDescent(stoppingCondition='epsilon', plot_y=True, save_y=True)
 LR.plot_w(save_png=True)
 
 # Performance evaluation - using test set
