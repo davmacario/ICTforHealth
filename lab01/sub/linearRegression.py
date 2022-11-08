@@ -610,7 +610,7 @@ class LinearRegression():
 # Define function of euclidean distance in F-dimension
 
 
-def dist_eval(element, train, dim=np.NaN):
+def dist_eval(element, train):
     """
     dist_eval: evaluate the distance (euclidean sense) between the test element
     and each one of the elements of the training set
@@ -618,12 +618,11 @@ def dist_eval(element, train, dim=np.NaN):
     - element: item whose distance needs to be computed
     - train: training set; each row is an element and the first 'dim' columns are 
       the features
-    - dim: number of features considered in the distance (in this case )
     ------------------------------------------------------------------------------
     """
-    if dim == np.NaN:
-        # The number of features needs to be inferred
-        dim = train.shape[1]
+    # Check same n. of features
+    if element.shape[0] != train.shape[1]:
+        raise ValueError('Error! The number of features of the element is not the same as the one of the training set!')
 
     distance_vect = np.empty((train.shape[0],))
 
@@ -635,7 +634,29 @@ def dist_eval(element, train, dim=np.NaN):
 
 
 class LocalLR():
-    """ Local linear regression model """
+    """ 
+    Local linear regression model 
+    ------------------------------------------------------------------------------
+    Attributes:
+    - Np
+    - Nf
+    - regressand
+    - regressors
+    - regressing_features
+    - regressand_name
+    - w_hat
+    - y_hat
+    - err_train
+    - mean_regressors
+    - stdev_regressors
+    - mean_regressand
+    - stdev_regressand
+    - regressors_norm
+    - regressand_norm
+    - N_closest
+    ------------------------------------------------------------------------------
+
+    """
 
     def __init__(self, regressand, regressors, N_closest):
         """  """
@@ -663,7 +684,7 @@ class LocalLR():
         self.y_hat = np.zeros((self.Np, ))
 
         # The error on the training set will be
-        self.SD_error_train = np.zeros((self.Np,))
+        self.err_train = np.zeros((self.Np,))
 
         #################### Normalize values ############################################################
         # Define normalized values (on which the algorithm(s) will be performed)
@@ -697,21 +718,40 @@ class LocalLR():
         # Number of closest
         self.N = N_closest
 
-    def solve(self, plot_y=False, save_y=False, imagepath_y="./img/LOCAL_training-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL-train_err_hist.png'):
+    def solve(self, plot_y=False, save_y=False, imagepath_y="./img/LOCAL_training-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL-training_err_hist.png'):
         """ 
-        Solution of the Local Linear Regression given N closest neighbors for the training 
-        dataset
-        -----------------------------------------------------------------------------------
+        Test local regression model 
+        ------------------------------------------------------------------------------
+        Solution of the Local Linear Regression given N closest neighbors for the 
+        Training dataset.
+        
         Approach:
-        - Iterate over each patient
-        - Find N closest
+        - Iterate over each patient in the NORMALIZED training set
+        - Find N closest (in the NORMALIZED regressors)
         - Create new regressand and regressors
             - Call new LinearRegression object
         - Find w_hat, store it in a new column of self.w_hat (use SD - as required)
         - Find y_hat_norm and store it in a new column of self.y_hat_norm
-        -----------------------------------------------------------------------------------
+        ------------------------------------------------------------------------------
+        Input parameters:
+        - plot_y (default False): used to plot the comparison y_hat vs. y
+        - save_y (default False): used to save the plot of comparison for y
+        - impagepath_y (default "./img/LOCAL_training-y_vs_y_hat.png"): path specifying 
+          where to store the y plot
+        - plot_hist (default False): used to plot the histogram of the error
+        - save_hist (default False)
+        - imagepath_hist (default './img/LOCAL-training_err_hist.png')
+        ------------------------------------------------------------------------------
+        Returned variables:
+        - self.err_train: vector containing the error done by the local regression 
+          approximation (length equal to the regressand)
+        - self.y_hat: (de-normalized) vector of the approximated regressand
+        - self.w_hat: matrix whose columns are the weights vectors associated with each 
+          row of the regressor matrix
+        ------------------------------------------------------------------------------
         """
-        Np = self.Np        # Number f patients in this set
+
+        Np = self.Np        # Number of patients in this set
         Nf = self.Nf        # Number of features
         N = self.N          # Number of considered neighbors
 
@@ -725,7 +765,7 @@ class LocalLR():
             y_curr = y[i]
 
             # Evaluate the distance of the current patient wrt each patient in the training set
-            distances = dist_eval(x_curr, X, dim=Nf)
+            distances = dist_eval(x_curr, X)
 
             # Find elements with minimum distance (i.e., indices of the N closest elements)
             sorted_vect = np.argsort(distances)
@@ -767,7 +807,7 @@ class LocalLR():
             # Find error on the training set
             error_curr = self.y_hat[i] - self.regressand[i]
             # Place it in position i
-            self.SD_error_train[i] = np.copy(error_curr)
+            self.err_train[i] = np.copy(error_curr)
 
         # Plot y vs y_hat (copy before)
         if plot_y:
@@ -787,7 +827,7 @@ class LocalLR():
 
         # Plot error histogram
         if plot_hist:
-            e = self.SD_error_train
+            e = self.err_train
 
             plt.figure(figsize=(6, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
@@ -802,10 +842,31 @@ class LocalLR():
                 plt.savefig(imagepath_hist)
             plt.show()
 
-        return self.w_hat, self.y_hat, self.SD_error_train
+        return self.err_train, self.y_hat, self.w_hat
 
     def test(self, test_regressand, test_regressors, plot_y=False, save_y=False, imagepath_y="./img/LOCAL_test-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL-test_err_hist.png'):
-        """ Test local regression model """
+        """ 
+        Test local regression model 
+        ------------------------------------------------------------------------------
+        Input parameters:
+        - test_regressand: DataFrame
+        - Test_regressors: DataFrame
+        - plot_y (default False): used to plot the comparison y_hat vs. y
+        - save_y (default False): used to save the plot of comparison for y
+        - impagepath_y (default "./img/LOCAL_test-y_vs_y_hat.png"): path specifying 
+          where to store the y plot
+        - plot_hist (default False): used to plot the histogram of the error
+        - save_hist (default False)
+        - imagepath_hist (default './img/LOCAL-test_err_hist.png')
+        ------------------------------------------------------------------------------
+        Returned variables:
+        - err_test: vector containing the error done by the local regression 
+          approximation (length equal to the regressand)
+        - y_hat_te: (de-normalized) vector of the approximated regressand
+        - w_hat_te: matrix whose columns are the weights vectors associated with each 
+          row of the regressor matrix
+        ------------------------------------------------------------------------------
+        """
         # Find K nearest
         Np_test = test_regressand.shape[0]      # n. patients in the test set
         Nf = self.Nf                            # number of features
@@ -828,20 +889,21 @@ class LocalLR():
         X_test_norm = (X_test - self.mean_regressors)/self.stdev_regressors
         y_test_norm = (y_test - self.mean_regressand)/self.stdev_regressand
 
-        # Take training set
-        X_tr = self.regressors
-        y_tr = self.regressand
+        # Take training set (normalized values)
+        X_tr = self.regressors_norm
+        y_tr = self.regressand_norm
 
+        # Initialize the values:
         w_hat_te = np.zeros((Nf, Np_test))      # Regression result
         y_hat_te = np.zeros((Np_test, ))        # Approximated y (test set)
-        err_test = np.zeros((Np_test, ))
+        err_test = np.zeros((Np_test, ))        # Error vector
 
         # Iterate on all patients in the test set:
         for i in range(X_test_norm.shape[0]):
             x_current = X_test_norm[i, :]
             y_current = y_test_norm[i]
 
-            distances = dist_eval(x_current, X_tr, dim=Nf)
+            distances = dist_eval(x_current, X_tr)
 
             # Find elements with minimum distance (i.e., indices of the N closest elements)
             sorted_vect = np.argsort(distances)
@@ -872,14 +934,14 @@ class LocalLR():
             # Store it in column i of w_hat_te
             w_hat_te[:, i] = np.copy(w_hat_te_curr)
 
-            # Get y_hat of the current patient (x_curr)
-            y_hat_te_curr = np.reshape(
+            # Get y_hat of the current patient (x_curr) - normalized
+            y_hat_te_curr_norm = np.reshape(
                 x_current, (1, len(x_current))) @ np.reshape(w_hat_te_curr, (len(w_hat_te_curr), 1))
 
             # Store this result in element i of the vector self.y_hat
             # NOTE: after denormalizing
             y_hat_te[i] = np.copy(
-                y_hat_te_curr*self.stdev_regressand + self.mean_regressand)
+                y_hat_te_curr_norm*self.stdev_regressand + self.mean_regressand)
 
             # Error - on de-normalized values
             err_test[i] = y_test[i] - y_hat_te[i]
@@ -919,16 +981,42 @@ class LocalLR():
 
         return err_test, y_hat_te, w_hat_te
 
-    # TODO:
-    # Define a function for comparing errors on test and train sets (histogram) +
-    # Creating the output DataFrame
+    
     def errorAnalysis(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL_error-hist_train-vs-test.png'):
+        """
+        errorAnalysis 
+        ------------------------------------------------------------------------------
+        Returns the error analysis for the Local Linear Regression model defined in 
+        the LocalLR object, given the provided Test dataset.
+        It is also possible to return the histogram comparing the error comparison 
+        histogram, which displays the comparison between Training and Test datasets.
+        ------------------------------------------------------------------------------
+        Parameters:
+        - test_regressand: DataFrame (Np x 1)
+        - Test_regresors: DataFrame (Np x Nf)
+        - plot_hist (default False): used to plot the histogram of the error
+        - save_hist (default False)
+        - imagepath_hist (default './img/LOCAL_error-hist_train-vs-test.png')
+        ------------------------------------------------------------------------------
+        Returned variable(s):
+        - results_local: DataFrame containing the following error figures of merit, 
+          for both the Training and Test datasets:
+            > minimum value
+            > maximum value
+            > mean value
+            > standard deviation
+            > mean square error
+            > coefficient of determination (wrt actual regressand values)
+            > correlation coefficient (between actual regressand and approximated one)
+        ------------------------------------------------------------------------------
+        """
+        
         if (self.w_hat == 0).all():
             self.solve()
 
-        err_test, y_hat_te = self.test(test_regressand, test_regressors)
+        err_test, y_hat_te = self.test(test_regressand, test_regressors)[:2]
 
-        err = [self.SD_error_train, err_test]
+        err = [self.err_train, err_test]
 
         if plot_hist:
             plt.figure(figsize=(6, 4))
@@ -950,11 +1038,11 @@ class LocalLR():
 
         # Analysis for SD
         # Training set
-        E_tr_min = self.SD_error_train.min()
-        E_tr_max = self.SD_error_train.max()
-        E_tr_mu = self.SD_error_train.mean()
-        E_tr_sigma = self.SD_error_train.std()
-        E_tr_MSE = np.mean(self.SD_error_train**2)
+        E_tr_min = self.err_train.min()
+        E_tr_max = self.err_train.max()
+        E_tr_mu = self.err_train.mean()
+        E_tr_sigma = self.err_train.std()
+        E_tr_MSE = np.mean(self.err_train**2)
         # R^2 (coefficient of determination)
         R2_tr = 1 - E_tr_MSE/(np.std(self.regressand)**2)
         # Correlation coefficient
