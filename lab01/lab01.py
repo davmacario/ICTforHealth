@@ -96,7 +96,8 @@ plt.show()
 # prevent that only some patients are in the training set
 # X --> Xsh
 # Shuffling is random - set the seed
-np.random.seed(315054)
+np.random.seed(30)
+# np.random.seed(315054)
 indexsh = np.arange(Np)  # Vector from 0 to Np-1
 np.random.shuffle(indexsh)      # Shuffle the vector of indices randomly
 Xsh = X.copy(deep=True)       # Copy X into Xsh
@@ -148,10 +149,12 @@ print("\nError analysis:")
 print(finalResults)
 
 #%%############# PART 2 - LOCAL LINEAR REGRESSION ##############################
-N_closest = [20, 200]
+N_closest = [20, 100, 200]
 
 size = X_tr.shape[0]
 print(f"N. of patient in training set: {size}")
+
+results_local = []
 
 for N in N_closest:
     LocalLinearRegression = myLR.LocalLR(y_tr, X_tr, N)
@@ -166,6 +169,10 @@ for N in N_closest:
 
 # Evaluate performance on test set
     LocalLinearRegression.test(y_te, X_te, plot_y=True, plot_hist=True)
-    LocalLinearRegression.errorAnalysis(y_te, X_te, plot_hist=True)
+    results_N = LocalLinearRegression.errorAnalysis(y_te, X_te, plot_hist=True)
+    results_local.append(results_N)
+
+    print(f"N = {N}")
+    print(results_N)
 # Loop over some values of N
 # [1, 10, 20, 40, 100, 500, 1000, 3000, 5000]

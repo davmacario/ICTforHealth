@@ -12,6 +12,8 @@ class LinearRegression():
     Parameters:
     - regressand: Pandas DataFrame containing the regressand
     - regressors: Pandas Dataframe containing the regressors
+    - normalize: (default True) specify whether we need to normalize the input 
+      (training) dataset before computing linear regression
     -----------------------------------------------------------------------------------
     Attributes:
     - regressand: regressand vector - Np elements (np.Ndarray)
@@ -34,7 +36,7 @@ class LinearRegression():
     -----------------------------------------------------------------------------------
     """
 
-    def __init__(self, regressand, regressors):
+    def __init__(self, regressand, regressors, normalize=True):
         # Check validity
         self.Np, self.Nf = regressors.values.shape
         if (regressand.values.shape[0] != self.Np):
@@ -65,36 +67,51 @@ class LinearRegression():
         self.y_hat_LLS_norm = np.zeros((self.Np,))
         self.y_hat_SD_norm = np.zeros((self.Np,))
 
-        # Define normalized values (on which the algorithm(s) will be performed)
-        self.mean_regressors = self.regressors.mean(axis=0)
-        self.stdev_regressors = self.regressors.std(axis=0)
-        # WHAT TO DO WHEN STDEV=0? - set the standard deviation to a low value
-        self.stdev_regressors[self.stdev_regressors == 0] = 1e-8
+        if normalize:
+            # Define normalized values (on which the algorithm(s) will be performed)
+            self.mean_regressors = self.regressors.mean(axis=0)
+            self.stdev_regressors = self.regressors.std(axis=0)
+            # WHAT TO DO WHEN STDEV=0? - set the standard deviation to a low value
+            self.stdev_regressors[self.stdev_regressors == 0] = 1e-8
 
-        if (0 in self.stdev_regressors):
-            print("One of the standard deviations is 0")
-            print(self.regressing_features)
-            print(self.stdev_regressors)
+            if (0 in self.stdev_regressors):
+                print("One of the standard deviations is 0")
+                print(self.regressing_features)
+                print(self.stdev_regressors)
 
-        if (not all(self.mean_regressors == np.zeros((self.Nf,))) or not all(self.stdev_regressors == np.ones((self.Nf,)))):
-            # Normalize
-            self.regressors_norm = (
-                self.regressors - self.mean_regressors)/self.stdev_regressors
+            if (not all(self.mean_regressors == np.zeros((self.Nf,))) or not all(self.stdev_regressors == np.ones((self.Nf,)))):
+                # Normalize
+                self.regressors_norm = (
+                    self.regressors - self.mean_regressors)/self.stdev_regressors
+            else:
+                # Do not normalize
+                self.regressors_norm = self.regressors
+
+            self.mean_regressand = self.regressand.mean(axis=0)
+            self.stdev_regressand = self.regressand.std(axis=0)
+            if self.stdev_regressand == 0:  # Case stdev == 0
+                self.stdev_regressand = 1e-8
+
+            if (self.mean_regressand != 0 or self.stdev_regressand != 1) and (normalize):
+                # Normalize
+                self.regressand_norm = (
+                    self.regressand - self.mean_regressand)/self.stdev_regressand
+            else:
+                self.regressand_norm = self.regressand
+
         else:
+            # No normalization - set all means to 0 and stdev to 1
+            self.mean_regressors = np.zeros((1, len(self.regressing_features)))
+            self.stdev_regressors = np.ones((1, len(self.regressing_features)))
             self.regressors_norm = self.regressors
 
-        self.mean_regressand = self.regressand.mean(axis=0)
-        self.stdev_regressand = self.regressand.std(axis=0)
-        if self.stdev_regressand == 0:
-            self.stdev_regressand = 1e-8
-
-        if (self.mean_regressand != 0 or self.stdev_regressand != 1):
-            # Normalize
-            self.regressand_norm = (
-                self.regressand - self.mean_regressand)/self.stdev_regressand
-        else:
+            self.mean_regressand = 0
+            self.stdev_regressand = 1
             self.regressand_norm = self.regressand
 
+            # NOTE: regressors_norm and regressand_norm will not necessarily be normalized in this case
+
+        # Init. error vectors
         self.LLS_error_train = np.zeros((self.Np,))
         self.SD_error_train = np.zeros((self.Np,))
 
@@ -621,6 +638,7 @@ class LocalLR():
     """ Local linear regression model """
 
     def __init__(self, regressand, regressors, N_closest):
+        """  """
         # Check validity
         self.Np, self.Nf = regressors.values.shape
         if (regressand.values.shape[0] != self.Np):
@@ -635,51 +653,54 @@ class LocalLR():
         self.regressors = regressors.values
 
         self.regressing_features = list(regressors.columns)
-        # NOTE: y is a 'series' object, not a dataframe, since it only contains 1 column
+        # NOTE: y is a 'series' object, not a dataframe, since it consists of 1 dataframe column
         self.regressand_name = str(regressand.name)
 
-        # Initialize solutions (will be SD) - each w_hat will be one column of this matrix
+        # Initialize solutions for Training Dataset (will be SD) - each w_hat will be one column of this matrix
         self.w_hat = np.zeros((self.Nf, self.Np))
 
-        # Initialize approximated regressands
+        # Initialize approximated (training) regressands
         self.y_hat = np.zeros((self.Np, ))
-
-        ###################################### Probably don't need this ###################################
-        # Initialize normalized approximated regressands
-        # self.y_hat_norm = np.zeros((N_closest, self.Np))
-
-        # # Define normalized values (on which the algorithm(s) will be performed)
-        # self.mean_regressors = self.regressors.mean(axis=0)
-        # self.stdev_regressors = self.regressors.std(axis=0)
-
-        # if (not all(self.mean_regressors == np.zeros((self.Nf,))) or not all(self.stdev_regressors == np.ones((self.Nf,)))):
-        #     # Normalize
-        #     self.regressors_norm = (
-        #         self.regressors - self.mean_regressors)/self.stdev_regressors
-        # else:
-        #     self.regressors_norm = self.regressors
-
-        # self.mean_regressand = self.regressand.mean(axis=0)
-        # self.stdev_regressand = self.regressand.std(axis=0)
-
-        # if (self.mean_regressand != 0 or self.stdev_regressand != 1):
-        #     # Normalize
-        #     self.regressand_norm = (
-        #         self.regressand - self.mean_regressand)/self.stdev_regressand
-        # else:
-        #     self.regressand_norm = self.regressand
-
-        ##################################################################################################
 
         # The error on the training set will be
         self.SD_error_train = np.zeros((self.Np,))
 
-        ###
+        #################### Normalize values ############################################################
+        # Define normalized values (on which the algorithm(s) will be performed)
+        self.mean_regressors = self.regressors.mean(axis=0)
+        self.stdev_regressors = self.regressors.std(axis=0)
+        # WHAT TO DO WHEN STDEV=0? - set the standard deviation to a low value
+        self.stdev_regressors[self.stdev_regressors == 0] = 1e-8
+
+        if (not all(self.mean_regressors == np.zeros((self.Nf,))) or not all(self.stdev_regressors == np.ones((self.Nf,)))):
+            # Normalize
+            self.regressors_norm = (
+                self.regressors - self.mean_regressors)/self.stdev_regressors
+        else:
+            self.regressors_norm = self.regressors
+
+        #
+        self.mean_regressand = self.regressand.mean(axis=0)
+        self.stdev_regressand = self.regressand.std(axis=0)
+        if self.stdev_regressand == 0:
+            self.stdev_regressand = 1e-8
+
+        if (self.mean_regressand != 0 or self.stdev_regressand != 1):
+            # Normalize
+            self.regressand_norm = (
+                self.regressand - self.mean_regressand)/self.stdev_regressand
+        else:
+            self.regressand_norm = self.regressand
+
+        ##################################################################################################
+
+        # Number of closest
         self.N = N_closest
 
     def solve(self, plot_y=False, save_y=False, imagepath_y="./img/LOCAL_training-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL-train_err_hist.png'):
         """ 
-        Solution of the Local Linear Regression given N closest neighbors
+        Solution of the Local Linear Regression given N closest neighbors for the training 
+        dataset
         -----------------------------------------------------------------------------------
         Approach:
         - Iterate over each patient
@@ -690,29 +711,30 @@ class LocalLR():
         - Find y_hat_norm and store it in a new column of self.y_hat_norm
         -----------------------------------------------------------------------------------
         """
-        Np = self.Np
-        Nf = self.Nf
-        N = self.N
+        Np = self.Np        # Number f patients in this set
+        Nf = self.Nf        # Number of features
+        N = self.N          # Number of considered neighbors
 
-        X = np.copy(self.regressors)
-        y = np.copy(self.regressand)
+        # Isolate the regressors matrix and the regressand (training dataset)
+        X = np.copy(self.regressors_norm)
+        y = np.copy(self.regressand_norm)
 
         for i in range(Np):
             # Isolate current patient
             x_curr = X[i, :]
             y_curr = y[i]
 
+            # Evaluate the distance of the current patient wrt each patient in the training set
             distances = dist_eval(x_curr, X, dim=Nf)
 
             # Find elements with minimum distance (i.e., indices of the N closest elements)
             sorted_vect = np.argsort(distances)
 
-            # Find the K closest elements
+            # Find the N closest elements
             X_closest = np.empty((N, Nf))
             y_closest = np.empty((N,))
-
             for ind1 in range(N):
-                # Fill X_closest
+                # Fill X_closest & y_closest (corresponding patients)
                 X_closest[ind1, :] = np.copy(X[sorted_vect[ind1], :])
                 y_closest[ind1] = np.copy(y[sorted_vect[ind1]])
 
@@ -723,7 +745,9 @@ class LocalLR():
             y_closest_df = pd.Series(
                 y_closest, name=self.regressand_name)
 
-            LR_closest = LinearRegression(y_closest_df, X_closest_df)
+            # TODO: Create new LinearRegression object - NO NEED TO NORMALIZE
+            LR_closest = LinearRegression(
+                y_closest_df, X_closest_df, normalize=False)
             # Update w_hat_SD
             LR_closest.solve_SteepestDescent()
 
@@ -736,10 +760,12 @@ class LocalLR():
             y_hat_curr = np.reshape(
                 x_curr, (1, len(x_curr)))@np.reshape(w_hat_SD_curr, (len(w_hat_SD_curr), 1))
             # Store this result in element i of the vector self.y_hat
-            self.y_hat[i] = np.copy(y_hat_curr)
+            # Need to de-normalize first
+            self.y_hat[i] = np.copy(
+                y_hat_curr*self.stdev_regressand + self.mean_regressand)
 
             # Find error on the training set
-            error_curr = y_hat_curr - y_curr
+            error_curr = self.y_hat[i] - self.regressand[i]
             # Place it in position i
             self.SD_error_train[i] = np.copy(error_curr)
 
@@ -780,40 +806,88 @@ class LocalLR():
 
     def test(self, test_regressand, test_regressors, plot_y=False, save_y=False, imagepath_y="./img/LOCAL_test-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL-test_err_hist.png'):
         """ Test local regression model """
-        Np_test = test_regressand.shape[0]
+        # Find K nearest
+        Np_test = test_regressand.shape[0]      # n. patients in the test set
+        Nf = self.Nf                            # number of features
+        N = self.N
 
         # Check dimensions
         if test_regressors.shape[0] != Np_test:
             raise ValueError(
                 "Error! The number of patients in the test regressors matrix is different from the one in the regressand!")
 
-        # Check that the test set has the same number of elements as the
-        # total number of columns of w_hat (matrix)
-        if (Np_test != self.Np):
+        if test_regressors.values.shape[1] != Nf:
             raise ValueError(
-                f"Error! The test set must contain as many elements as the training set ({self.Np})!")
+                "Error! The number of features in the training set is not the same as in the test set!")
 
-        # Check whether we already computed the matrix w_hats
-        if (self.w_hat == 0).all():
-            # If not computed, then evaluate it
-            self.solve()
-
+        # Isolate ndarrays of test set
         y_test = test_regressand.values
         X_test = test_regressors.values
 
-        y_hat_test = np.zeros((Np_test,))
+        # Normalize (wrt test set parameters)
+        X_test_norm = (X_test - self.mean_regressors)/self.stdev_regressors
+        y_test_norm = (y_test - self.mean_regressand)/self.stdev_regressand
 
-        for i in range(Np_test):
-            # Take one row of the test regressors (one patient) and multiply it
-            # with the corresponding column of the matrix of w_hat
-            y_hat_test[i] = X_test[i, :]@self.w_hat[:, i]
+        # Take training set
+        X_tr = self.regressors
+        y_tr = self.regressand
 
-        err_test = y_test - y_hat_test
+        w_hat_te = np.zeros((Nf, Np_test))      # Regression result
+        y_hat_te = np.zeros((Np_test, ))        # Approximated y (test set)
+        err_test = np.zeros((Np_test, ))
+
+        # Iterate on all patients in the test set:
+        for i in range(X_test_norm.shape[0]):
+            x_current = X_test_norm[i, :]
+            y_current = y_test_norm[i]
+
+            distances = dist_eval(x_current, X_tr, dim=Nf)
+
+            # Find elements with minimum distance (i.e., indices of the N closest elements)
+            sorted_vect = np.argsort(distances)
+
+            # Find the N closest elements
+            X_closest_te = np.empty((N, Nf))
+            y_closest_te = np.empty((N,))
+
+            for ind1 in range(N):
+                # Fill X_closest with closest elements in the training set
+                X_closest_te[ind1, :] = np.copy(X_tr[sorted_vect[ind1], :])
+                y_closest_te[ind1] = np.copy(y_tr[sorted_vect[ind1]])
+
+            # Create new LinearRegression object with X_closest and y_closest
+            # BUT: need dataframes
+            X_closest_te_df = pd.DataFrame(
+                X_closest_te, columns=self.regressing_features)
+            y_closest_te_df = pd.Series(
+                y_closest_te, name=self.regressand_name)
+
+            LR_closest_test = LinearRegression(
+                y_closest_te_df, X_closest_te_df, normalize=False)
+            # Update w_hat_SD
+            LR_closest_test.solve_SteepestDescent()
+
+            # Get weights for Local LR
+            w_hat_te_curr = LR_closest_test.w_hat_SD
+            # Store it in column i of w_hat_te
+            w_hat_te[:, i] = np.copy(w_hat_te_curr)
+
+            # Get y_hat of the current patient (x_curr)
+            y_hat_te_curr = np.reshape(
+                x_current, (1, len(x_current))) @ np.reshape(w_hat_te_curr, (len(w_hat_te_curr), 1))
+
+            # Store this result in element i of the vector self.y_hat
+            # NOTE: after denormalizing
+            y_hat_te[i] = np.copy(
+                y_hat_te_curr*self.stdev_regressand + self.mean_regressand)
+
+            # Error - on de-normalized values
+            err_test[i] = y_test[i] - y_hat_te[i]
 
         # Plot y vs. y_hat
         if plot_y:
             plt.figure(figsize=(6, 4))
-            plt.plot(y_test, y_hat_test, '.')   # Place dots
+            plt.plot(y_test, y_hat_te, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
             plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
@@ -843,7 +917,7 @@ class LocalLR():
                 plt.savefig(imagepath_hist)
             plt.show()
 
-        return err_test, y_hat_test
+        return err_test, y_hat_te, w_hat_te
 
     # TODO:
     # Define a function for comparing errors on test and train sets (histogram) +
