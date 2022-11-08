@@ -5,15 +5,6 @@ import sub.minimization as mymin
 import sub.linearRegression as myLR
 
 
-# TODO [3]: local linear regression model (find 10 neighbors)
-# TODO [4]: plot:
-#          - Estimated regressand vs. true regressand (de-norm)
-#          - Histogram of de-norm. estimation error
-# TODO [5]: fill DataFrame with the measured min, max, mean, stdev, msv, R^2,
-# correlation coeff. for regression errors, comparing normal and local
-# linear regression
-#
-#
 # TODO [6]: run the program also with 20 values of the seed and average results
 
 
@@ -96,8 +87,8 @@ plt.show()
 # prevent that only some patients are in the training set
 # X --> Xsh
 # Shuffling is random - set the seed
-np.random.seed(30)
-# np.random.seed(315054)
+np.random.seed(315054)
+
 indexsh = np.arange(Np)  # Vector from 0 to Np-1
 np.random.shuffle(indexsh)      # Shuffle the vector of indices randomly
 Xsh = X.copy(deep=True)       # Copy X into Xsh
@@ -149,23 +140,17 @@ print("\nError analysis:")
 print(finalResults)
 
 #%%############# PART 2 - LOCAL LINEAR REGRESSION ##############################
-N_closest = [20, 100, 200]
+N_closest = [20, 50, 100, 200, 400]
 
 size = X_tr.shape[0]
-print(f"N. of patient in training set: {size}")
+print(f"N. of patients in training set: {size}")
 
 results_local = []
 
 for N in N_closest:
     LocalLinearRegression = myLR.LocalLR(y_tr, X_tr, N)
     train_error_matrix = LocalLinearRegression.solve(
-        plot_y=True, plot_hist=True)[2]
-
-    # plt.figure()
-    # plt.plot(train_error_matrix)
-    # plt.grid()
-    # plt.xticks(range(len(train_error_matrix)))
-    # plt.show()
+        plot_y=True, plot_hist=True)[0]
 
 # Evaluate performance on test set
     LocalLinearRegression.test(y_te, X_te, plot_y=True, plot_hist=True)
@@ -174,5 +159,95 @@ for N in N_closest:
 
     print(f"N = {N}")
     print(results_N)
-# Loop over some values of N
-# [1, 10, 20, 40, 100, 500, 1000, 3000, 5000]
+
+## Results local will contain all DataFrames, associated with each value of N_closest
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#%%############# PART 3 - AVERAGING RESULTS OVER 20 SEEDS ##########################
+#
+# This section contains the same operations done so far on the data, 
+# repeated for different values of the seed
+
+seeds = list(range(1,21))
+
+# Define the variables we need to average 
+
+# Remove features in advance - NOTE: total_UPDRS was not removed since it will be removed later
+X_str = X.drop(['subject#', 'Jitter:DDP', 'Shimmer:DDA'], axis=1)
+
+for index in range(len(seeds)):
+    
+    np.random.seed(seeds[index])
+
+    indexsh = np.arange(Np)         # Vector from 0 to Np-1
+    np.random.shuffle(indexsh)      # Shuffle the vector of indices randomly
+    Xsh = X_str.copy(deep=True)         # Copy X into Xsh
+
+    # Shuffling (according to current seed)
+    Xsh = Xsh.set_axis(indexsh, axis=0, inplace=False)
+    Xsh = Xsh.sort_index(axis=0)
+
+    # 50% of shuffled matrix is out training set, other 50% is test set
+    Ntr = int(0.5*Np)
+    Nte = Np - Ntr
+
+    # Isolate training data
+    X_tr = Xsh[0:Ntr].drop(
+        ['total_UPDRS'], axis=1)
+    y_tr = Xsh['total_UPDRS'][0:Ntr]
+
+    # Test set:
+    X_te = Xsh[Ntr:].drop(
+        ['total_UPDRS'], axis=1)
+    y_te = Xsh['total_UPDRS'][Ntr:]
+
+    # Create LinearRegression object
+    LR = myLR.LinearRegression(y_tr, X_tr)
+
+    # Solve Linear Regression using both LLS and Steepest Descent, then
+    # compare the resulting w_hat by plotting
+    LR.solve_LLS(plot_y=True, save_y=True)
+    LR.solve_SteepestDescent(stoppingCondition='epsilon', plot_y=True, save_y=True)
+    LR.plot_w(save_png=True)
+
+    # Performance evaluation - using test set
+    LR.LLS_test(y_te, X_te, plot_hist=True, plot_y=True)
+    LR.SD_test(y_te, X_te, plot_hist=True, plot_y=True)
+
+    error_vect = LR.test(y_te, X_te, plot_hist=True, save_hist=True)
+
+    finalResults = LR.errorAnalysis(y_te, X_te)
+    print("\nError analysis:")
+    print(finalResults)
+
+    ####### Local linear regresison
+    N_closest = [20, 50, 100, 200, 400]
+
+    size = X_tr.shape[0]
+    print(f"N. of patients in training set: {size}")
+
+    results_local = []
+
+    for N in N_closest:
+        LocalLinearRegression = myLR.LocalLR(y_tr, X_tr, N)
+        train_error_matrix = LocalLinearRegression.solve(
+            plot_y=True, plot_hist=True)[0]
+
+    # Evaluate performance on test set
+        LocalLinearRegression.test(y_te, X_te, plot_y=True, plot_hist=True)
+        results_N = LocalLinearRegression.errorAnalysis(y_te, X_te, plot_hist=True)
+        results_local.append(results_N)
+
+        print(f"N = {N}")
+        print(results_N)
