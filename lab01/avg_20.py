@@ -90,10 +90,9 @@ c = Xnorm.cov()  # Measure the covariance
 
 seeds = list(range(1,21))
 
-# Define the variables we need to average 
-
-results_local_20 = []   # results of the local linear regression
-
+# Create containers for the variables that we need to average
+results_LR_20 = []      # Results of the "traditional" linear regression (both LLS and Steepest Descent)
+results_local_20 = []   # Results of the local linear regression
 
 # Remove features in advance - NOTE: total_UPDRS was not removed since it will be removed later
 X_str = X.drop(['subject#', 'Jitter:DDP', 'Shimmer:DDA'], axis=1)
@@ -142,6 +141,7 @@ for index in range(len(seeds)):
     finalResults = LR.errorAnalysis(y_te, X_te)
     print("\nError analysis:")
     print(finalResults)
+    results_LR_20.append(finalResults)                          ######
 
     ####### Local linear regresison
     N_closest = [20, 50, 100, 200, 400]
@@ -163,4 +163,54 @@ for index in range(len(seeds)):
         print(f"N = {N}")
         print(results_N)
     
-    results_local_20.append(results_local)
+    results_local_20.append(results_local)                      ######
+
+#### Averaging:
+
+# "Traditional" LR:
+# Extract matrix from each DF, sum them
+# Divide by len(seeds)
+tmp_mat_sum = np.zeros((results_LR_20[0].shape))
+for i in range(len(seeds)):
+    tmp_mat_sum += results_LR_20[i].values
+
+combinations = [
+    ('LLS', 'Training'), ('LLS', 'Test'),
+    ('SD', 'Training'), ('SD', 'Test')
+]
+index_final = pd.MultiIndex.from_tuples(
+    combinations, names=('Technique', 'Set'))
+
+averaged_results_LR = pd.DataFrame(tmp_mat_sum/len(seeds), index=index_final, columns=finalResults.columns)
+
+print("-------------------------------------------")
+print("Averaged results - standard Linear Regression")
+print("-------------------------------------------")
+print(averaged_results_LR)
+print('\n')
+
+# Local LR:
+# Extract corresponding elements for each value of N neighbors
+print("-------------------------------------------")
+print("Averaged results - Local Linear regression:")
+print("-------------------------------------------")
+
+# Create empty list of tmp_sum matrices (one for each value of N used)
+tmp_mat_N = [np.zeros((results_N.shape)) for ind in range(len(N_closest))]
+
+for i in range(len(seeds)):
+    for j in range(len(N_closest)):
+        tmp_mat_N[j] += results_local_20[i][j].values
+
+avg_mat_N = [mat/len(seeds) for mat in tmp_mat_N]
+
+averaged_results_LocalLR = []
+for i in range(len(N_closest)):
+    tmp_df_loc = pd.DataFrame(avg_mat_N[i], index=results_N.index, columns=results_N.columns)
+    averaged_results_LocalLR.append(tmp_df_loc)
+    print(f"-------------------------------------------\nNumber of neighbors: {N_closest[i]}; Results:")
+    print(tmp_df_loc)
+
+
+
+

@@ -655,7 +655,6 @@ class LocalLR():
     - regressand_norm
     - N_closest
     ------------------------------------------------------------------------------
-
     """
 
     def __init__(self, regressand, regressors, N_closest):
@@ -980,7 +979,6 @@ class LocalLR():
             plt.show()
 
         return err_test, y_hat_te, w_hat_te
-
     
     def errorAnalysis(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL_error-hist_train-vs-test.png'):
         """
@@ -1001,13 +999,13 @@ class LocalLR():
         Returned variable(s):
         - results_local: DataFrame containing the following error figures of merit, 
           for both the Training and Test datasets:
-            > minimum value
-            > maximum value
-            > mean value
-            > standard deviation
-            > mean square error
-            > coefficient of determination (wrt actual regressand values)
-            > correlation coefficient (between actual regressand and approximated one)
+            - minimum value
+            - maximum value
+            - mean value
+            - standard deviation
+            - mean square error
+            - coefficient of determination (wrt actual regressand values)
+            - correlation coefficient (between actual regressand and approximated one)
         ------------------------------------------------------------------------------
         """
         
