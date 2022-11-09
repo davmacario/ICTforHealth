@@ -115,7 +115,7 @@ class LinearRegression():
         self.LLS_error_train = np.zeros((self.Np,))
         self.SD_error_train = np.zeros((self.Np,))
 
-    def solve_LLS(self, plot_w=False, save_w=False, imagepath_w="./img/LLS-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/LLS-y_vs_y_hat.png"):
+    def solve_LLS(self, plot_w=False, save_w=False, imagepath_w="./img/01_LLS-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/02_LLS-y_vs_y_hat.png"):
         """
         Solution of the Linear Regression by means of the Linear Least Squares method.
         This function fills the attribute w_hat_LLS.
@@ -174,13 +174,15 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-    def solve_SteepestDescent(self, stoppingCondition='iterations', Nit=50, plot_w=False, save_w=False, imagepath_w="./img/SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/SD-y_vs_y_hat.png"):
+    def solve_SteepestDescent(self, stoppingCondition='iterations', Nit=50, plot_w=False, save_w=False, imagepath_w="./img/03_SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/04_SD-y_vs_y_hat.png"):
         """
         Solution of the Linear Regression by means of the Steepest Descent method.
         This function fills the attribute w_hat_SD.
         -----------------------------------------------------------------------------------
         Optional parameters: 
-        - Nit: number of iterations (stopping condition) for the Steepest Descent algorithm
+        - stoppingCondition: (default 'iterations') decides which stopping condition to use
+          (can be: 'iterations' and 'epsilon')
+        - Nit: (default 50) number of iterations (stopping condition) for the Steepest Descent algorithm
         - plot_w: (default False) if True, a plot of the weights vector (w_hat_SD) is 
           produced
         - save_w: (default False) if True, the image will be saved in the specified path
@@ -236,7 +238,7 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-    def plot_w(self, save_png=False, imagepath="./img/w_hat_comparison.png"):
+    def plot_w(self, save_png=False, imagepath="./img/05_w_hat_comparison.png"):
         """
         This mathod produces a comparison plot between the weights vectors 
         w_hat obtained with LLS and SD.
@@ -269,7 +271,7 @@ class LinearRegression():
             plt.savefig(imagepath)
         plt.show()
 
-    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/LLS-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/LLS_y_test_vs_y_hat_test.png'):
+    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/06_LLS-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/07_LLS_y_test_vs_y_hat_test.png'):
         """
         This method is used to estimate a test regressand given the test 
         regressors and using the weights evaluated with the LLS method
@@ -355,7 +357,7 @@ class LinearRegression():
 
         return err_LLS_test, y_hat_LLS_test
 
-    def SD_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/SD-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/SD_y_test_vs_y_hat_test.png'):
+    def SD_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/08_SD-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/09_SD_y_test_vs_y_hat_test.png'):
         """
         This method is used to estimate a test regressand given the test 
         regressors and using the weights evaluated with the SD method
@@ -441,7 +443,7 @@ class LinearRegression():
 
         return err_SD_test, y_hat_SD_test
 
-    def test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/err_hist_compare.png'):
+    def test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/10_err_hist_compare.png'):
         """
         This method is used to compare the performance of Linear Regression carried out
         with either LLS or Steepest Descent in terms of error on the regressand
@@ -473,7 +475,7 @@ class LinearRegression():
         y_hat_list = [y_hat_LLS_te, y_hat_SD_te]
 
         if plot_hist:
-            plt.figure(figsize=(6, 4))
+            plt.figure(figsize=(12, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
                      label=['LLS', 'SD'])
             plt.xlabel(r"$e = y - \^y$")
@@ -653,7 +655,7 @@ class LocalLR():
     - stdev_regressand
     - regressors_norm
     - regressand_norm
-    - N_closest
+    - N
     ------------------------------------------------------------------------------
     """
 
@@ -717,7 +719,7 @@ class LocalLR():
         # Number of closest
         self.N = N_closest
 
-    def solve(self, plot_y=False, save_y=False, imagepath_y="./img/LOCAL_training-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL-training_err_hist.png'):
+    def solve(self, plot_y=False, save_y=False, imagepath_y="./img/11_LOCAL_training-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/12_LOCAL-training_err_hist.png'):
         """ 
         Test local regression model 
         ------------------------------------------------------------------------------
@@ -810,7 +812,7 @@ class LocalLR():
 
         # Plot y vs y_hat (copy before)
         if plot_y:
-            plt.figure(figsize=(6, 4))
+            plt.figure(figsize=(8, 4))
             plt.plot(self.regressand, self.y_hat, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
@@ -818,7 +820,7 @@ class LocalLR():
             plt.xlabel(r'$y$')
             plt.ylabel(r'$\^y$', rotation=0)
             plt.grid()
-            plt.title("Local Linear Regression - Training validation set")
+            plt.title(f"Local Linear Regression - Training validation set - N={self.N}")
             plt.tight_layout()
             if save_y:
                 plt.savefig(imagepath_y)
@@ -828,14 +830,14 @@ class LocalLR():
         if plot_hist:
             e = self.err_train
 
-            plt.figure(figsize=(6, 4))
+            plt.figure(figsize=(8, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
                      label='training')
             plt.xlabel(r"$e = y - \^y$")
             plt.ylabel(r'$P(e$ in bin$)$')
             plt.legend()
             plt.grid()
-            plt.title('Local Linear Regression - Training error histogram')
+            plt.title(f'Local Linear Regression - Training error histogram - N={self.N}')
             plt.tight_layout()
             if save_hist:
                 plt.savefig(imagepath_hist)
@@ -843,7 +845,7 @@ class LocalLR():
 
         return self.err_train, self.y_hat, self.w_hat
 
-    def test(self, test_regressand, test_regressors, plot_y=False, save_y=False, imagepath_y="./img/LOCAL_test-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL-test_err_hist.png'):
+    def test(self, test_regressand, test_regressors, plot_y=False, save_y=False, imagepath_y="./img/13_LOCAL_test-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/14_LOCAL-test_err_hist.png'):
         """ 
         Test local regression model 
         ------------------------------------------------------------------------------
@@ -947,7 +949,7 @@ class LocalLR():
 
         # Plot y vs. y_hat
         if plot_y:
-            plt.figure(figsize=(6, 4))
+            plt.figure(figsize=(8, 4))
             plt.plot(y_test, y_hat_te, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
@@ -955,7 +957,7 @@ class LocalLR():
             plt.xlabel(r'$y$')
             plt.ylabel(r'$\^y$', rotation=0)
             plt.grid()
-            plt.title("Local Linear Regression - Test set")
+            plt.title(f"Local Linear Regression - Test set - N={self.N}")
             plt.tight_layout()
             if save_y:
                 plt.savefig(imagepath_y)
@@ -965,14 +967,14 @@ class LocalLR():
         if plot_hist:
             e = err_test
 
-            plt.figure(figsize=(6, 4))
+            plt.figure(figsize=(8, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
                      label='training')
             plt.xlabel(r"$e = y - \^y$")
             plt.ylabel(r'$P(e$ in bin$)$')
             plt.legend()
             plt.grid()
-            plt.title('Local Linear Regression - Test error histogram')
+            plt.title(f'Local Linear Regression - Test error histogram - N={self.N}')
             plt.tight_layout()
             if save_hist:
                 plt.savefig(imagepath_hist)
@@ -980,7 +982,7 @@ class LocalLR():
 
         return err_test, y_hat_te, w_hat_te
     
-    def errorAnalysis(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/LOCAL_error-hist_train-vs-test.png'):
+    def errorAnalysis(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/15_LOCAL_error-hist_train-vs-test.png'):
         """
         errorAnalysis 
         ------------------------------------------------------------------------------
@@ -1017,7 +1019,7 @@ class LocalLR():
         err = [self.err_train, err_test]
 
         if plot_hist:
-            plt.figure(figsize=(6, 4))
+            plt.figure(figsize=(8, 4))
             plt.hist(err, bins=50, density=True, histtype='bar',
                      label=['Training set', 'Test set'])
             plt.xlabel(r"$e = y - \^y$")
@@ -1025,7 +1027,7 @@ class LocalLR():
             plt.legend()
             plt.grid()
             plt.title(
-                'Local Linear Regression error histogram - comparison between the training and test set')
+                f'Local LR error histogram - comparison between training and test set - N={self.N}')
             plt.tight_layout()
             if save_hist:
                 plt.savefig(imagepath_hist)

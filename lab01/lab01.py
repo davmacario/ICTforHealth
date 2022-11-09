@@ -66,7 +66,7 @@ plt.yticks(np.arange(len(features)), features, rotation=0)
 plt.colorbar()
 plt.title("Correlation coefficients of the features")
 plt.tight_layout()
-plt.savefig("./img/corr_coeff.png")  # Save the figure
+plt.savefig("./img/00_corr_coeff.png")  # Save the figure
 plt.show()
 
 # Plot relationship between total UPDRS and the other features
@@ -76,7 +76,7 @@ plt.grid()
 plt.xticks(np.arange(len(features)), features, rotation=90)
 plt.title('Correlation coefficient between total UPDRS and other features')
 plt.tight_layout()
-plt.savefig("./img/corr_tot_UPDRS.png")
+plt.savefig("./img/00_1_corr_tot_UPDRS.png")
 plt.show()
 
 # Keep in mind: even though the patient ID seems correlated to the total
@@ -126,12 +126,12 @@ LR = myLR.LinearRegression(y_tr, X_tr)
 # Solve Linear Regression using both LLS and Steepest Descent, then
 # compare the resulting w_hat by plotting
 LR.solve_LLS(plot_y=True, save_y=True)
-LR.solve_SteepestDescent(stoppingCondition='epsilon', plot_y=True, save_y=True)
+LR.solve_SteepestDescent(stoppingCondition='iterations', Nit=100, plot_y=True, save_y=True)
 LR.plot_w(save_png=True)
 
 # Performance evaluation - using test set
-LR.LLS_test(y_te, X_te, plot_hist=True, plot_y=True)
-LR.SD_test(y_te, X_te, plot_hist=True, plot_y=True)
+LR.LLS_test(y_te, X_te, plot_hist=True, save_hist=True, plot_y=True, save_y=True)
+LR.SD_test(y_te, X_te, plot_hist=True, save_hist=True, plot_y=True, save_y=True)
 
 error_vect = LR.test(y_te, X_te, plot_hist=True, save_hist=True)
 
@@ -150,11 +150,11 @@ results_local = []
 for N in N_closest:
     LocalLinearRegression = myLR.LocalLR(y_tr, X_tr, N)
     train_error_matrix = LocalLinearRegression.solve(
-        plot_y=True, plot_hist=True)[0]
+        plot_y=True, save_y=True, imagepath_y= f"./img/11_LOCAL_training-y_vs_y_hat_N{N}.png" , plot_hist=True, save_hist=True, imagepath_hist= f'./img/12_LOCAL-training_err_hist_N{N}.png')[0]
 
 # Evaluate performance on test set
-    LocalLinearRegression.test(y_te, X_te, plot_y=True, plot_hist=True)
-    results_N = LocalLinearRegression.errorAnalysis(y_te, X_te, plot_hist=True)
+    LocalLinearRegression.test(y_te, X_te, plot_y=True, save_y=True, imagepath_y= f"./img/13_LOCAL_test-y_vs_y_hat_N{N}.png", plot_hist=True, save_hist=True, imagepath_hist= f'./img/14_LOCAL-test_err_hist_N{N}.png')
+    results_N = LocalLinearRegression.errorAnalysis(y_te, X_te, plot_hist=True, save_hist=True, imagepath_hist= f'./img/15_LOCAL_error-hist_train-vs-test_N{N}.png')
     results_local.append(results_N)
 
     print(f"N = {N}")
@@ -274,17 +274,17 @@ index_final = pd.MultiIndex.from_tuples(
 
 averaged_results_LR = pd.DataFrame(tmp_mat_sum/len(seeds), index=index_final, columns=finalResults.columns)
 
-print("-------------------------------------------")
-print("Averaged results - standard Linear Regression")
-print("-------------------------------------------")
+print("+-----------------------------------------------+")
+print("| Averaged results - standard Linear Regression |")
+print("+-----------------------------------------------+")
 print(averaged_results_LR)
 print('\n')
 
 # Local LR:
 # Extract corresponding elements for each value of N neighbors
-print("-------------------------------------------")
-print("Averaged results - Local Linear regression:")
-print("-------------------------------------------")
+print("+-----------------------------------------------+")
+print("|  Averaged results - Local Linear regression   |")
+print("+-----------------------------------------------+")
 
 # Create empty list of tmp_sum matrices (one for each value of N used)
 tmp_mat_N = [np.zeros((results_N.shape)) for ind in range(len(N_closest))]
@@ -301,7 +301,3 @@ for i in range(len(N_closest)):
     averaged_results_LocalLR.append(tmp_df_loc)
     print(f"-------------------------------------------\nNumber of neighbors: {N_closest[i]}; Results:")
     print(tmp_df_loc)
-
-
-
-
