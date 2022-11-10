@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# np.random.seed(1)
 np.random.seed(315054)
-
 
 class SolveMinProbl:
     """
@@ -159,26 +159,7 @@ class SteepestDescent(SolveMinProbl):
         # Initial w: random
         w = np.random.rand(self.Nf,)
 
-        if stoppingCondition == 'iterations':
-            self.err = np.zeros((Nit, 2), dtype=float)
-            for it in range(Nit):
-
-                grad = 2*A.T@(A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))
-
-                # gamma = (np.linalg.norm(grad)**2)/((grad.T@Hess)@grad)
-                numer = np.linalg.norm(grad)**2
-                denom = float((grad.T@Hess)@grad)
-
-                gamma = numer/denom
-
-                w = w - gamma*(grad.reshape(len(grad),))
-
-                newrow = [it, np.linalg.norm(
-                    A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))**2]
-
-                self.err[it, :] = np.copy(newrow)
-
-        elif stoppingCondition == 'epsilon':
+        if stoppingCondition == 'epsilon':
             grad = np.ones((Nf,))
             errList = []
             iter = 0
@@ -200,6 +181,26 @@ class SteepestDescent(SolveMinProbl):
                 iter += 1
             # By appending to a list and only then creating an array the code runs noticeably faster
             self.err = np.array(errList)
+        
+        #elif stoppingCondition == 'iterations':
+        else:       # This is the default solution
+            self.err = np.zeros((Nit, 2), dtype=float)
+            for it in range(Nit):
+
+                grad = 2*A.T@(A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))
+
+                # gamma = (np.linalg.norm(grad)**2)/((grad.T@Hess)@grad)
+                numer = np.linalg.norm(grad)**2
+                denom = float((grad.T@Hess)@grad)
+
+                gamma = numer/denom
+
+                w = w - gamma*(grad.reshape(len(grad),))
+
+                newrow = [it, np.linalg.norm(
+                    A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))**2]
+
+                self.err[it, :] = np.copy(newrow)
 
         self.sol = w.reshape(len(w),)
         self.min = self.err[-1, 1]

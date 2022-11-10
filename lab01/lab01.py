@@ -88,6 +88,7 @@ plt.show()
 # X --> Xsh
 # Shuffling is random - set the seed
 np.random.seed(315054)
+# np.random.seed(1)
 
 indexsh = np.arange(Np)  # Vector from 0 to Np-1
 np.random.shuffle(indexsh)      # Shuffle the vector of indices randomly
@@ -126,7 +127,7 @@ LR = myLR.LinearRegression(y_tr, X_tr)
 # Solve Linear Regression using both LLS and Steepest Descent, then
 # compare the resulting w_hat by plotting
 LR.solve_LLS(plot_y=True, save_y=True)
-LR.solve_SteepestDescent(stoppingCondition='iterations', Nit=100, plot_y=True, save_y=True)
+LR.solve_SteepestDescent(stoppingCondition='iterations', Nit=200, plot_y=True, save_y=True)
 LR.plot_w(save_png=True)
 
 # Performance evaluation - using test set
@@ -140,7 +141,8 @@ print("\nError analysis:")
 print(finalResults)
 
 #%%############# PART 2 - LOCAL LINEAR REGRESSION ##############################
-N_closest = [20, 50, 100, 200, 400]
+# N_closest = [20, 50, 100, 200, 400]
+N_closest = [20]
 
 size = X_tr.shape[0]
 print(f"N. of patients in training set: {size}")
@@ -220,7 +222,7 @@ for index in range(len(seeds)):
     # Solve Linear Regression using both LLS and Steepest Descent, then
     # compare the resulting w_hat by plotting
     LR.solve_LLS()
-    LR.solve_SteepestDescent(stoppingCondition='epsilon')
+    LR.solve_SteepestDescent(stoppingCondition='iterations', Nit = 200)
     # LR.plot_w()
 
     # Performance evaluation - using test set
