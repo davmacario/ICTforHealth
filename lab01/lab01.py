@@ -64,9 +64,9 @@ plt.matshow(np.abs(c.values), fignum=0)
 plt.xticks(np.arange(len(features)), features, rotation=90)
 plt.yticks(np.arange(len(features)), features, rotation=0)
 plt.colorbar()
-plt.title("Correlation coefficients of the features")
+plt.title("Covariance of the features")
 plt.tight_layout()
-plt.savefig("./img/00_corr_coeff.png")  # Save the figure
+plt.savefig("./img/00_cov_matr.png")  # Save the figure
 plt.show()
 
 # Plot relationship between total UPDRS and the other features
@@ -141,8 +141,8 @@ print("\nError analysis:")
 print(finalResults)
 
 #%%############# PART 2 - LOCAL LINEAR REGRESSION ##############################
-# N_closest = [20, 50, 100, 200, 400]
-N_closest = [20]
+N_closest = [20, 50, 100, 200, 400]
+# N_closest = [20]
 
 size = X_tr.shape[0]
 print(f"N. of patients in training set: {size}")
@@ -159,7 +159,7 @@ for N in N_closest:
     results_N = LocalLinearRegression.errorAnalysis(y_te, X_te, plot_hist=True, save_hist=True, imagepath_hist= f'./img/15_LOCAL_error-hist_train-vs-test_N{N}.png')
     results_local.append(results_N)
 
-    print(f"N = {N}")
+    print(f"\nN = {N}")
     print(results_N)
 
 ## Results local will contain all DataFrames, associated with each value of N_closest
@@ -192,6 +192,8 @@ X_str = X.drop(['subject#', 'Jitter:DDP', 'Shimmer:DDA'], axis=1)
 
 for index in range(len(seeds)):
     
+    print(f"\nIteration number {index}: -----------------------------------------")
+
     np.random.seed(seeds[index])
 
     indexsh = np.arange(Np)         # Vector from 0 to Np-1
