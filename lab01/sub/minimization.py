@@ -134,7 +134,7 @@ class SteepestDescent(SolveMinProbl):
     This class is used to solve minimization problems using the steepest descent method
     """
 
-    def run(self, stoppingCondition='iterations', Nit=20, eps=1e-10):
+    def run(self, stoppingCondition='iterations', Nit=20, eps=1e-8):
         """ 
         -------------------------------------------------------------------------
         Solve the minimization problem with the Steepest Descent algorithm
