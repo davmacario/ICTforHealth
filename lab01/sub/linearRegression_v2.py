@@ -922,7 +922,7 @@ class LocalLR():
 
         # Plot y vs y_hat (copy before)
         if plot_y:
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(6, 4))
             plt.plot(self.train_regressand, self.y_hat_tr, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
@@ -940,7 +940,7 @@ class LocalLR():
         if plot_hist:
             e = self.err_train
 
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(6, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
                      label='training')
             plt.xlabel(r"$e = y - \^y$")
@@ -1041,7 +1041,7 @@ class LocalLR():
 
         # Plot y vs. y_hat
         if plot_y:
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(6, 4))
             plt.plot(self.test_regressand, self.y_hat_te, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
@@ -1059,7 +1059,7 @@ class LocalLR():
         if plot_hist:
             e = self.err_test
 
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(6, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
                      label='training')
             plt.xlabel(r"$e = y - \^y$")

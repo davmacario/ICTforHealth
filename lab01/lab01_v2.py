@@ -138,7 +138,7 @@ print("\nError analysis:")
 print(finalResults)
 
 #%%############# PART 2 - LOCAL LINEAR REGRESSION ##############################
-N_closest = [10, 20, 50, 70, 100, 200, 400]
+N_closest = [10, 20, 50, 100]
 # N_closest = [20]
 
 size = X_tr.shape[0]
@@ -189,8 +189,8 @@ X_str = X.drop(['subject#', 'Jitter:DDP', 'Shimmer:DDA'], axis=1)
 
 for index in range(len(seeds)):
     
-    print(f"\nIteration number {index+1}: -----------------------------------------")
-    print(f"Seed = {seeds[index]}\n")
+    # print(f"\nIteration number {index+1}: -----------------------------------------")
+    # print(f"Seed = {seeds[index]}\n")
 
     np.random.seed(seeds[index])
 
@@ -231,13 +231,13 @@ for index in range(len(seeds)):
     #error_vect = LR.test()
 
     finalResults = LR.errorAnalysis()
-    print("\nError analysis:")
-    print(finalResults)
+    # print("\nError analysis:")
+    # print(finalResults)
     results_LR_20.append(finalResults)                          ######
 
     ####### Local linear regresison
     size = X_tr.shape[0]
-    print(f"N. of patients in training set: {size}")
+    # print(f"N. of patients in training set: {size}")
 
     results_local = []
 
@@ -250,8 +250,8 @@ for index in range(len(seeds)):
         results_N = LocalLinearRegression.errorAnalysis()
         results_local.append(results_N)
 
-        print(f"N = {N}")
-        print(results_N)
+        # print(f"N = {N}")
+        # print(results_N)
     
     results_local_20.append(results_local)                      ######
 
