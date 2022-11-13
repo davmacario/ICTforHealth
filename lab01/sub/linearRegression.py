@@ -475,7 +475,7 @@ class LinearRegression():
         y_hat_list = [y_hat_LLS_te, y_hat_SD_te]
 
         if plot_hist:
-            plt.figure(figsize=(12, 4))
+            plt.figure(figsize=(8, 5))
             plt.hist(e, bins=50, density=True, histtype='bar',
                      label=['LLS', 'SD'])
             plt.xlabel(r"$e = y - \^y$")
