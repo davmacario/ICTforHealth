@@ -312,7 +312,7 @@ class LinearRegression():
             self.solve_SteepestDescent()
 
         nn = np.arange(self.Nf)
-        plt.figure(figsize=(6, 4))
+        plt.figure(figsize=(9, 4))
         plt.plot(nn, self.w_hat_LLS, '-o', label="LLS")
         plt.plot(nn, self.w_hat_SD, '-o', label="Steepest Descent")
         ticks = nn
