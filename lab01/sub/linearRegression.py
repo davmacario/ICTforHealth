@@ -10,14 +10,19 @@ class LinearRegression():
     LLS or Steepest Descent
     -----------------------------------------------------------------------------------
     Parameters:
-    - regressand: Pandas DataFrame containing the regressand
-    - regressors: Pandas Dataframe containing the regressors
+    - train_regressand: Pandas DataFrame containing the training regressand
+    - train_regressors: Pandas Dataframe containing the training regressors
+    - test_regressand: Pandas DataFrame containing the test regressand (NOT COMPULSORY)
+    - test_regressors: Pandas Dataframe containing the test regressors (NOT COMPULSORY)
     - normalize: (default True) specify whether we need to normalize the input 
       (training) dataset before computing linear regression
     -----------------------------------------------------------------------------------
     Attributes:
-    - regressand: regressand vector - Np elements (np.Ndarray)
-    - regressors: regressors matrix - Np x Nf (np.Ndarray)
+    - Np_tr: number rows in the training regressors matrix
+    - Np_te: number rows in the test regressors matrix
+    - Nf: number of regressing features
+    - train_regressand: regressand vector - Np elements (np.Ndarray)
+    - train_regressors: regressors matrix - Np x Nf (np.Ndarray)
     - regressing_features: list of the features of the regressors
     - w_hat_LLS: solution of the linear regression using Linear Least Squares method
     - w_hat_SD: solution of the linear regression using Steepest Descent algorithm
@@ -33,87 +38,138 @@ class LinearRegression():
     - regressand_norm: normalized (training) regressand
     - LLS_error_train: absolute error of the LLS solution (over the training set)
     - SD_error_train: absolute error of the SD solution (over the training set)
+    - test_defined: True if the test set was provided
     -----------------------------------------------------------------------------------
     """
 
-    def __init__(self, regressand, regressors, normalize=True):
+    def __init__(self, train_regressand, train_regressors, test_regressand = pd.DataFrame({'A' : []}), test_regressors = pd.DataFrame({'A' : []}), normalize=True):
         # Check validity
-        self.Np, self.Nf = regressors.values.shape
-        if (regressand.values.shape[0] != self.Np):
+        self.Np_tr, self.Nf = train_regressors.values.shape
+        if (test_regressand.empty or test_regressors.empty):
+            # Allow for calling this class without providing test set
+            self.test_defined = False
+        else: self.test_defined = True
+
+        self.Np_te = test_regressors.values.shape[0]
+
+        # Same number of features between train and test
+        if self.test_defined and (train_regressors.values.shape[1] != self.Nf):
+            raise ValueError("The training and test regressing features are not the same!")
+
+        # Same rows in regressand and regressors (training)
+        if (train_regressand.values.shape[0] != self.Np_tr):
             raise ValueError(
-                "The dimensions of regressand and regressors are not coherent!\n")
+                "The dimensions of training regressand and regressors are not coherent!\n")
+        
+        # Same rows in regressand and regressors (test)
+        if self.test_defined and (test_regressand.values.shape[0] != self.Np_te):
+            raise ValueError(
+                "The dimensions of test regressand and regressors are not coherent!\n")
 
-        if (len(regressand.values.shape) > 1 and regressand.values.shape[1] > 1):
-            raise ValueError("The regressand is not a 1D vector!\n")
+        # Check training regressand
+        if (len(train_regressand.values.shape) > 1 and train_regressand.values.shape[1] > 1):
+            raise ValueError("The training regressand is not a 1D vector!\n")
 
-        # Training set
+        # Check test regressand
+        if self.test_defined and (len(test_regressand.values.shape) > 1 and test_regressand.values.shape[1] > 1):
+            raise ValueError("The test regressand is not a 1D vector!\n")
 
-        self.regressand = regressand.values
-        self.regressors = regressors.values
+        ##################### Data set ##############################################
 
-        self.regressing_features = list(regressors.columns)
+        self.train_regressand = train_regressand.values
+        self.train_regressors = train_regressors.values
+
+        self.test_regressand = test_regressand.values if (self.test_defined) else np.zeros((self.Np_tr,))
+        self.test_regressors = test_regressors.values if (self.test_defined) else np.zeros((self.Np_tr, self.Nf))
+
+        # Feature names
+        self.regressing_features = list(train_regressors.columns)
         # NOTE: y is a 'Series' object, not a DataFrame, since it only contains 1 column
-        self.regressand_name = str(regressand.name)
+        self.regressand_name = str(train_regressand.name)
 
         # Initialize solutions
         self.w_hat_LLS = np.zeros((self.Nf,))
         self.w_hat_SD = np.zeros((self.Nf,))
 
-        # Initialize approximated regressands
-        self.y_hat_LLS = np.zeros((self.Np,))
-        self.y_hat_SD = np.zeros((self.Np,))
+        # Initialize approximated train regressands
+        self.y_hat_tr_LLS = np.zeros((self.Np_tr,))
+        self.y_hat_tr_SD = np.zeros((self.Np_tr,))
 
-        # Initialize normalized approximated regressands
-        self.y_hat_LLS_norm = np.zeros((self.Np,))
-        self.y_hat_SD_norm = np.zeros((self.Np,))
+        # Initialize approximated test regressands
+        self.y_hat_te_LLS = np.zeros((self.Np_te,))
+        self.y_hat_te_SD = np.zeros((self.Np_te,))
+
+        # Initialize normalized approximated train regressands
+        self.y_hat_tr_LLS_norm = np.zeros((self.Np_tr,))
+        self.y_hat_tr_SD_norm = np.zeros((self.Np_tr,))
+
+        # Initialize normalized approximated test regressands
+        self.y_hat_te_LLS_norm = np.zeros((self.Np_te,))
+        self.y_hat_te_SD_norm = np.zeros((self.Np_te,))
 
         if normalize:
             # Define normalized values (on which the algorithm(s) will be performed)
-            self.mean_regressors = self.regressors.mean(axis=0)
-            self.stdev_regressors = self.regressors.std(axis=0)
-            # WHAT TO DO WHEN STDEV=0? - set the standard deviation to a low value
-            self.stdev_regressors[self.stdev_regressors == 0] = 1e-8
+            self.mean_regressors = self.train_regressors.mean(axis=0)
+            self.stdev_regressors = self.train_regressors.std(axis=0)
 
             if (0 in self.stdev_regressors):
                 print("One of the standard deviations is 0")
                 print(self.regressing_features)
                 print(self.stdev_regressors)
 
+            # WHAT TO DO WHEN STDEV=0? - set the standard deviation to a low value
+            self.stdev_regressors[self.stdev_regressors == 0] = 1e-8
+
+            # Normalize training set 
             if (not all(self.mean_regressors == np.zeros((self.Nf,))) or not all(self.stdev_regressors == np.ones((self.Nf,)))):
                 # Normalize
-                self.regressors_norm = (
-                    self.regressors - self.mean_regressors)/self.stdev_regressors
+                self.train_regressors_norm = (
+                    self.train_regressors - self.mean_regressors)/self.stdev_regressors
+                
+                self.test_regressors_norm = (self.test_regressors - self.mean_regressors)/self.stdev_regressors
+
             else:
                 # Do not normalize
-                self.regressors_norm = self.regressors
+                self.train_regressors_norm = self.train_regressors
+                self.test_regressors_norm = self.test_regressors
 
-            self.mean_regressand = self.regressand.mean(axis=0)
-            self.stdev_regressand = self.regressand.std(axis=0)
+            self.mean_regressand = self.train_regressand.mean(axis=0)
+            self.stdev_regressand = self.train_regressand.std(axis=0)
             if self.stdev_regressand == 0:  # Case stdev == 0
                 self.stdev_regressand = 1e-8
 
             if (self.mean_regressand != 0 or self.stdev_regressand != 1) and (normalize):
                 # Normalize
-                self.regressand_norm = (
-                    self.regressand - self.mean_regressand)/self.stdev_regressand
+                self.train_regressand_norm = (
+                    self.train_regressand - self.mean_regressand)/self.stdev_regressand
+
+                self.test_regressand_norm = (
+                    self.test_regressand - self.mean_regressand)/self.stdev_regressand
+
             else:
-                self.regressand_norm = self.regressand
+                self.train_regressand_norm = self.train_regressand
+                self.test_regressand_norm = self.test_regressand
 
         else:
             # No normalization - set all means to 0 and stdev to 1
             self.mean_regressors = np.zeros((1, len(self.regressing_features)))
             self.stdev_regressors = np.ones((1, len(self.regressing_features)))
-            self.regressors_norm = self.regressors
+            self.train_regressors_norm = self.train_regressors
+            self.test_regressors_norm = self.test_regressors
 
             self.mean_regressand = 0
             self.stdev_regressand = 1
-            self.regressand_norm = self.regressand
+            self.train_regressand_norm = self.train_regressand
+            self.test_regressand_norm = self.test_regressand
 
             # NOTE: regressors_norm and regressand_norm will not necessarily be normalized in this case
 
         # Init. error vectors
-        self.LLS_error_train = np.zeros((self.Np,))
-        self.SD_error_train = np.zeros((self.Np,))
+        self.LLS_error_train = np.zeros((self.Np_tr,))
+        self.SD_error_train = np.zeros((self.Np_tr,))
+
+        self.LLS_error_test = np.zeros((self.Np_te,))
+        self.SD_error_test = np.zeros((self.Np_te,))
 
     def solve_LLS(self, plot_w=False, save_w=False, imagepath_w="./img/01_LLS-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/02_LLS-y_vs_y_hat.png"):
         """
@@ -133,16 +189,16 @@ class LinearRegression():
           the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         """
-        X_tr_norm = self.regressors_norm
-        y_tr_norm = self.regressand_norm
+        X_tr_norm = self.train_regressors_norm
+        y_tr_norm = self.train_regressand_norm
         self.w_hat_LLS = np.linalg.inv(
             X_tr_norm.T@X_tr_norm)@(X_tr_norm.T@y_tr_norm)
 
-        self.y_hat_LLS_norm = X_tr_norm@(self.w_hat_LLS)
-        self.y_hat_LLS = self.stdev_regressand * \
-            (self.y_hat_LLS_norm) + self.mean_regressand
+        self.y_hat_tr_LLS_norm = X_tr_norm@(self.w_hat_LLS)
+        self.y_hat_tr_LLS = self.stdev_regressand * \
+            (self.y_hat_tr_LLS_norm) + self.mean_regressand
 
-        self.LLS_error_train = self.regressand - self.y_hat_LLS
+        self.LLS_error_train = self.train_regressand - self.y_hat_tr_LLS
 
         if plot_w:
             nn = np.arange(self.Nf)
@@ -161,7 +217,7 @@ class LinearRegression():
 
         if plot_y:
             plt.figure(figsize=(6, 4))
-            plt.plot(self.regressand, self.y_hat_LLS, '.')   # Place dots
+            plt.plot(self.train_regressand, self.y_hat_tr_LLS, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
             plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
@@ -174,7 +230,7 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-    def solve_SteepestDescent(self, stoppingCondition='iterations', Nit=50, plot_w=False, save_w=False, imagepath_w="./img/03_SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/04_SD-y_vs_y_hat.png"):
+    def solve_SteepestDescent(self, stoppingCondition='iterations', Nit=100, plot_w=False, save_w=False, imagepath_w="./img/03_SD-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/04_SD-y_vs_y_hat.png"):
         """
         Solution of the Linear Regression by means of the Steepest Descent method.
         This function fills the attribute w_hat_SD.
@@ -195,18 +251,18 @@ class LinearRegression():
           the comparison between y and y_hat
         -----------------------------------------------------------------------------------
         """
-        X_tr_norm = self.regressors_norm
-        y_tr_norm = self.regressand_norm
+        X_tr_norm = self.train_regressors_norm
+        y_tr_norm = self.train_regressand_norm
         SD_problem = mymin.SteepestDescent(
-            self.regressand_norm, self.regressors_norm)
+            y_tr_norm, X_tr_norm)
         self.w_hat_SD = SD_problem.run(
             stoppingCondition=stoppingCondition, Nit=Nit)
 
-        self.y_hat_SD_norm = X_tr_norm@(self.w_hat_SD)
-        self.y_hat_SD = self.stdev_regressand * \
-            (self.y_hat_SD_norm) + self.mean_regressand
+        self.y_hat_tr_SD_norm = X_tr_norm@(self.w_hat_SD)
+        self.y_hat_tr_SD = self.stdev_regressand * \
+            (self.y_hat_tr_SD_norm) + self.mean_regressand
 
-        self.SD_error_train = self.regressand - self.y_hat_SD
+        self.SD_error_train = self.train_regressand - self.y_hat_tr_SD
 
         if plot_w:
             nn = np.arange(self.Nf)
@@ -225,7 +281,7 @@ class LinearRegression():
 
         if plot_y:
             plt.figure(figsize=(6, 4))
-            plt.plot(self.regressand, self.y_hat_SD, '.')   # Place dots
+            plt.plot(self.train_regressand, self.y_hat_tr_SD, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
             plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
@@ -256,7 +312,7 @@ class LinearRegression():
             self.solve_SteepestDescent()
 
         nn = np.arange(self.Nf)
-        plt.figure(figsize=(6, 4))
+        plt.figure(figsize=(9, 4))
         plt.plot(nn, self.w_hat_LLS, '-o', label="LLS")
         plt.plot(nn, self.w_hat_SD, '-o', label="Steepest Descent")
         ticks = nn
@@ -271,7 +327,7 @@ class LinearRegression():
             plt.savefig(imagepath)
         plt.show()
 
-    def LLS_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/06_LLS-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/07_LLS_y_test_vs_y_hat_test.png'):
+    def LLS_test(self, plot_hist=False, save_hist=False, imagepath_hist='./img/06_LLS-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/07_LLS_y_test_vs_y_hat_test.png'):
         """
         This method is used to estimate a test regressand given the test 
         regressors and using the weights evaluated with the LLS method
@@ -297,35 +353,29 @@ class LinearRegression():
         - y_hat_LLS_test: approximated regressand
         -----------------------------------------------------------------------------------
         """
+        # Check for availability of the test set
+        if not self.test_defined:
+            raise RuntimeError("The test set was not defined!")
+
         # Check w_hat_LLS already computed
         if (all(self.w_hat_LLS == np.zeros((self.Nf,)))):
             self.solveLLS()
 
-        if (test_regressand.values.shape != self.regressand.shape):
-            raise ValueError(
-                "The dimensions of the test regressand are different from the ones of the training set\n")
-
-        if (test_regressors.values.shape != self.regressors.shape):
-            raise ValueError(
-                "The dimensions of the test regressors are different from the ones of the training set\n")
-
         ## Test set ###################################################
-        y_test = test_regressand.values
-        X_test = test_regressors.values
-
+    
         # Normalize
-        X_test_norm = (X_test - self.mean_regressors)/self.stdev_regressors
+        X_test_norm = self.test_regressors_norm
 
         # Obtain approximated regressand
-        y_hat_LLS_norm_test = X_test_norm@self.w_hat_LLS
+        self.y_hat_te_LLS_norm = X_test_norm@self.w_hat_LLS
         # De-normalize
-        y_hat_LLS_test = y_hat_LLS_norm_test*self.stdev_regressand + self.mean_regressand
+        self.y_hat_te_LLS = self.y_hat_te_LLS_norm*self.stdev_regressand + self.mean_regressand
 
         # Error
-        err_LLS_test = y_test - y_hat_LLS_test
+        self.LLS_error_test = self.test_regressand - self.y_hat_te_LLS
 
         if plot_hist:
-            e = [self.LLS_error_train, err_LLS_test]
+            e = [self.LLS_error_train, self.LLS_error_test]
 
             plt.figure(figsize=(6, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
@@ -342,7 +392,7 @@ class LinearRegression():
 
         if plot_y:
             plt.figure(figsize=(6, 4))
-            plt.plot(test_regressand, y_hat_LLS_test, '.')   # Place dots
+            plt.plot(self.test_regressand, self.y_hat_te_LLS, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
             plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
@@ -355,9 +405,9 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-        return err_LLS_test, y_hat_LLS_test
+        return self.LLS_error_test, self.y_hat_te_LLS
 
-    def SD_test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/08_SD-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/09_SD_y_test_vs_y_hat_test.png'):
+    def SD_test(self, plot_hist=False, save_hist=False, imagepath_hist='./img/08_SD-err_hist.png', plot_y=False, save_y=False, imagepath_y='./img/09_SD_y_test_vs_y_hat_test.png'):
         """
         This method is used to estimate a test regressand given the test 
         regressors and using the weights evaluated with the SD method
@@ -383,35 +433,29 @@ class LinearRegression():
         - y_hat_SD_test: approssimated regressand
         -----------------------------------------------------------------------------------
         """
+        # Check for availability of the test set
+        if not self.test_defined:
+            raise RuntimeError("The test set was not defined!")
+
         # Check w_hat_SD already computed
         if (all(self.w_hat_SD == np.zeros((self.Nf,)))):
             self.solveSD()
 
-        if (test_regressand.values.shape != self.regressand.shape):
-            raise ValueError(
-                "The dimensions of the test regressand are different from the ones of the training set\n")
-
-        if (test_regressors.values.shape != self.regressors.shape):
-            raise ValueError(
-                "The dimensions of the test regressors are different from the ones of the training set\n")
-
         ## Test set ###################################################
-        y_test = test_regressand.values
-        X_test = test_regressors.values
 
         # Normalize
-        X_test_norm = (X_test - self.mean_regressors)/self.stdev_regressors
+        X_test_norm = self.test_regressors_norm
 
         # Obtain approximated regressand
-        y_hat_SD_norm_test = X_test_norm@self.w_hat_SD
+        self.y_hat_te_SD_norm = X_test_norm@self.w_hat_SD
         # De-normalize
-        y_hat_SD_test = y_hat_SD_norm_test*self.stdev_regressand + self.mean_regressand
+        self.y_hat_te_SD = self.y_hat_te_SD_norm*self.stdev_regressand + self.mean_regressand
 
         # Error
-        err_SD_test = y_test - y_hat_SD_test
+        self.SD_error_test = self.test_regressand - self.y_hat_te_SD
 
         if plot_hist:
-            e = [self.SD_error_train, err_SD_test]
+            e = [self.SD_error_train, self.SD_error_test]
 
             plt.figure(figsize=(6, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
@@ -428,7 +472,7 @@ class LinearRegression():
 
         if plot_y:
             plt.figure(figsize=(6, 4))
-            plt.plot(test_regressand, y_hat_SD_test, '.')   # Place dots
+            plt.plot(self.test_regressand, self.y_hat_te_SD, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
             plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
@@ -441,9 +485,9 @@ class LinearRegression():
                 plt.savefig(imagepath_y)
             plt.show()
 
-        return err_SD_test, y_hat_SD_test
+        return self.SD_error_test, self.y_hat_te_SD
 
-    def test(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/10_err_hist_compare.png'):
+    def test(self, plot_hist=False, save_hist=False, imagepath_hist='./img/10_err_hist_compare.png'):
         """
         This method is used to compare the performance of Linear Regression carried out
         with either LLS or Steepest Descent in terms of error on the regressand
@@ -463,16 +507,22 @@ class LinearRegression():
         - e: list containing the error vectors of LLS and SD over the test set
         -----------------------------------------------------------------------------------
         """
+        # Check for availability of the test set
+        if not self.test_defined:
+            raise RuntimeError("The test set was not defined!")
+        
         # Call both LLS_test and SD_test and store the results (absolute errors) in order
         # to make the comparison between the two methods
+    
+        # Check whether the solution was already evaluated or not
+        if (all(self.y_hat_te_LLS == np.zeros((self.Np_te,)))):
+            self.LLS_test()
 
-        err_LLS_test, y_hat_LLS_te = self.LLS_test(
-            test_regressand, test_regressors)
-        err_SD_test, y_hat_SD_te = self.SD_test(
-            test_regressand, test_regressors)
+        if (all(self.y_hat_te_SD == np.zeros((self.Np_te,)))):
+            self.SD_test()
 
-        e = [err_LLS_test, err_SD_test]
-        y_hat_list = [y_hat_LLS_te, y_hat_SD_te]
+        e = [self.LLS_error_test, self.SD_error_test]
+        y_hat_list = [self.y_hat_te_LLS, self.y_hat_te_SD]
 
         if plot_hist:
             plt.figure(figsize=(8, 5))
@@ -491,13 +541,21 @@ class LinearRegression():
 
         return e, y_hat_list
 
-    def errorAnalysis_LLS(self, test_regressand, test_regressors):
-        """  """
-        e_LLS_te, y_hat_LLS_te = self.LLS_test(
-            test_regressand, test_regressors)
+    def errorAnalysis_LLS(self):
+        """
+        Produce a DataFrame containing figures of merit highlighting the performance of Linear Regression with LLS
+        on both the Test set and the Training set
+        """
+        # Check for availability of the test set
+        if not self.test_defined:
+            raise RuntimeError("The test set was not defined!")
 
-        y_te = test_regressand.values
-        X_te = test_regressors.values
+        if (all(self.y_hat_tr_LLS == np.zeros((self.Np_tr,)))):
+            self.solve_LLS()
+
+        # Check whether the solution was already evaluated or not
+        if (all(self.y_hat_te_LLS == np.zeros((self.Np_te,)))):
+            self.LLS_test()
 
         # Analysis for LLS
         # Training set
@@ -507,22 +565,22 @@ class LinearRegression():
         E_tr_sigma_LLS = self.LLS_error_train.std()
         E_tr_MSE_LLS = np.mean(self.LLS_error_train**2)
         # R^2 (coefficient of determination)
-        R2_tr_LLS = 1 - E_tr_MSE_LLS/(np.std(self.regressand)**2)
+        R2_tr_LLS = 1 - E_tr_MSE_LLS/(np.std(self.train_regressand)**2)
         # Correlation coefficient
-        c_tr_LLS = np.mean((self.regressand - self.regressand.mean())*(self.y_hat_LLS - self.y_hat_LLS.mean())
-                           )/(self.regressand.std()*self.y_hat_LLS.std())
+        c_tr_LLS = np.mean((self.train_regressand - self.mean_regressand)*(self.y_hat_tr_LLS - self.y_hat_tr_LLS.mean())
+                           )/(self.stdev_regressand*self.y_hat_tr_LLS.std())
 
         # Test set
-        E_te_min_LLS = e_LLS_te.min()
-        E_te_max_LLS = e_LLS_te.max()
-        E_te_mu_LLS = e_LLS_te.mean()
-        E_te_sigma_LLS = e_LLS_te.std()
-        E_te_MSE_LLS = np.mean(e_LLS_te**2)
+        E_te_min_LLS = self.LLS_error_test.min()
+        E_te_max_LLS = self.LLS_error_test.max()
+        E_te_mu_LLS = self.LLS_error_test.mean()
+        E_te_sigma_LLS = self.LLS_error_test.std()
+        E_te_MSE_LLS = np.mean(self.LLS_error_test**2)
         # R^2 (coefficient of determination)
-        R2_te_LLS = 1 - E_te_MSE_LLS/(np.std(y_te)**2)
+        R2_te_LLS = 1 - E_te_MSE_LLS/(np.std(self.test_regressand)**2)
         # Correlation coefficient
-        c_te_LLS = np.mean((y_te - y_te.mean())*(y_hat_LLS_te - y_hat_LLS_te.mean())
-                           )/(y_te.std()*y_hat_LLS_te.std())
+        c_te_LLS = np.mean((self.test_regressand - self.test_regressand.mean())*(self.y_hat_te_LLS - self.y_hat_te_LLS.mean())
+                           )/(self.test_regressand.std()*self.y_hat_te_LLS.std())
 
         rows = ['Training', 'Test']
         cols = ['min', 'max', 'mean', 'std', 'MSE', 'R^2', 'corr_coeff']
@@ -536,13 +594,20 @@ class LinearRegression():
 
         return results_LLS
 
-    def errorAnalysis_SD(self, test_regressand, test_regressors):
-        """  """
+    def errorAnalysis_SD(self):
+        """
+        Produce a DataFrame containing figures of merit highlighting the performance of Linear Regression with Steepest Descent
+        on both the Test set and the Training set
+        """
+        # Check for availability of the test set
+        if not self.test_defined:
+            raise RuntimeError("The test set was not defined!")
 
-        e_SD_te, y_hat_SD_te = self.LLS_test(test_regressand, test_regressors)
+        if (all(self.y_hat_tr_SD == np.zeros((self.Np_tr,)))):
+            self.solve_SteepestDescent()
 
-        y_te = test_regressand.values
-        X_te = test_regressors.values
+        if (all(self.y_hat_te_SD == np.zeros((self.Np_te,)))):
+            self.SD_test()
 
         # Analysis for SD
         # Training set
@@ -552,22 +617,22 @@ class LinearRegression():
         E_tr_sigma_SD = self.SD_error_train.std()
         E_tr_MSE_SD = np.mean(self.SD_error_train**2)
         # R^2 (coefficient of determination)
-        R2_tr_SD = 1 - E_tr_MSE_SD/(np.std(self.regressand)**2)
+        R2_tr_SD = 1 - E_tr_MSE_SD/(np.std(self.train_regressand)**2)
         # Correlation coefficient
-        c_tr_SD = np.mean((self.regressand - self.regressand.mean())*(self.y_hat_SD - self.y_hat_SD.mean())
-                          )/(self.regressand.std()*self.y_hat_SD.std())
+        c_tr_SD = np.mean((self.train_regressand - self.mean_regressand)*(self.y_hat_tr_SD - self.y_hat_tr_SD.mean())
+                          )/(self.stdev_regressand*self.y_hat_tr_SD.std())
 
         # Test set
-        E_te_min_SD = e_SD_te.min()
-        E_te_max_SD = e_SD_te.max()
-        E_te_mu_SD = e_SD_te.mean()
-        E_te_sigma_SD = e_SD_te.std()
-        E_te_MSE_SD = np.mean(e_SD_te**2)
+        E_te_min_SD = self.SD_error_test.min()
+        E_te_max_SD = self.SD_error_test.max()
+        E_te_mu_SD = self.SD_error_test.mean()
+        E_te_sigma_SD = self.SD_error_test.std()
+        E_te_MSE_SD = np.mean(self.SD_error_test**2)
         # R^2 (coefficient of determination)
-        R2_te_SD = 1 - E_te_MSE_SD/(np.std(y_te)**2)
+        R2_te_SD = 1 - E_te_MSE_SD/(np.std(self.test_regressand)**2)
         # Correlation coefficient
-        c_te_SD = np.mean((y_te - y_te.mean())*(y_hat_SD_te - y_hat_SD_te.mean())
-                          )/(y_te.std()*y_hat_SD_te.std())
+        c_te_SD = np.mean((self.test_regressand - self.test_regressand.mean())*(self.y_hat_te_SD - self.y_hat_te_SD.mean())
+                          )/(self.test_regressand.std()*self.y_hat_te_SD.std())
 
         rows = ['Training', 'Test']
         cols = ['min', 'max', 'mean', 'std', 'MSE', 'R^2', 'corr_coeff']
@@ -581,15 +646,19 @@ class LinearRegression():
 
         return results_SD
 
-    def errorAnalysis(self, test_regressand, test_regressors):
-        """  """
+    def errorAnalysis(self):
+        """
+        Produce a DataFrame containing figures of merit highlighting the performance of Linear regression (with either LLS
+        or Steepest Descent) on both the Test set and the Training set
+        """
+        # Check for availability of the test set
+        if not self.test_defined:
+            raise RuntimeError("The test set was not defined!")
 
-        res_LLS = self.errorAnalysis_LLS(test_regressand, test_regressors)
-        res_SD = self.errorAnalysis_SD(test_regressand, test_regressors)
+        res_LLS = self.errorAnalysis_LLS()
+        res_SD = self.errorAnalysis_SD()
 
         features = res_LLS.columns
-        # rows_LLS = res_LLS.index
-        # rows_SD = res_SD.index
 
         p_LLS = res_LLS.values
         p_SD = res_SD.values
@@ -640,86 +709,127 @@ class LocalLR():
     Local linear regression model 
     ------------------------------------------------------------------------------
     Attributes:
-    - Np
+    - Np_tr
+    - Np_te
     - Nf
-    - regressand
-    - regressors
+    - train_regressand
+    - train_regressors
+    - test_regressand
+    - test_regressors
     - regressing_features
     - regressand_name
-    - w_hat
-    - y_hat
+    - w_hat_tr
+    - w_hat_te
+    - y_hat_tr
+    - y_hat_te
     - err_train
     - mean_regressors
     - stdev_regressors
     - mean_regressand
     - stdev_regressand
-    - regressors_norm
-    - regressand_norm
+    - train_regressors_norm
+    - train_regressand_norm
+    - test_regressors_norm
+    - test_regressand_norm
     - N
     ------------------------------------------------------------------------------
     """
 
-    def __init__(self, regressand, regressors, N_closest):
-        """  """
+    def __init__(self, train_regressand, train_regressors, test_regressand, test_regressors, N_closest):
         # Check validity
-        self.Np, self.Nf = regressors.values.shape
-        if (regressand.values.shape[0] != self.Np):
+        self.Np_tr, self.Nf = train_regressors.values.shape
+        self.Np_te = test_regressors.values.shape[0]
+
+        # Same number of features between train and test
+        if (train_regressors.values.shape[1] != self.Nf):
+            raise ValueError("The training and test regressing features are not the same!")
+
+        # Same rows in regressand and regressors (training)
+        if (train_regressand.values.shape[0] != self.Np_tr):
             raise ValueError(
-                "The dimensions of regressand and regressors are not coherent!\n")
+                "The dimensions of training regressand and regressors are not coherent!\n")
+        
+        # Same rows in regressand and regressors (test)
+        if (test_regressand.values.shape[0] != self.Np_te):
+            raise ValueError(
+                "The dimensions of test regressand and regressors are not coherent!\n")
 
-        if (len(regressand.values.shape) > 1 and regressand.values.shape[1] > 1):
-            raise ValueError("The regressand is not a 1D vector!\n")
+        # Check training regressand
+        if (len(train_regressand.values.shape) > 1 and train_regressand.values.shape[1] > 1):
+            raise ValueError("The training regressand is not a 1D vector!\n")
 
-        # Training set
-        self.regressand = regressand.values
-        self.regressors = regressors.values
+        # Check test regressand
+        if (len(test_regressand.values.shape) > 1 and test_regressand.values.shape[1] > 1):
+            raise ValueError("The test regressand is not a 1D vector!\n")
 
-        self.regressing_features = list(regressors.columns)
-        # NOTE: y is a 'series' object, not a dataframe, since it consists of 1 dataframe column
-        self.regressand_name = str(regressand.name)
+        #################### Data Set #############################################################
+        self.train_regressand = train_regressand.values
+        self.train_regressors = train_regressors.values
+
+        self.test_regressand = test_regressand.values
+        self.test_regressors = test_regressors.values
+
+        # Feature names
+        self.regressing_features = list(train_regressors.columns)
+        # NOTE: y is a 'Series' object, not a DataFrame, since it only contains 1 column
+        self.regressand_name = str(train_regressand.name)
 
         # Initialize solutions for Training Dataset (will be SD) - each w_hat will be one column of this matrix
-        self.w_hat = np.zeros((self.Nf, self.Np))
+        self.w_hat_tr = np.zeros((self.Nf, self.Np_tr))
+        # Initialize solutions for Test Dataset (will be SD) - each w_hat will be one column of this matrix
+        self.w_hat_te = np.zeros((self.Nf, self.Np_te))
 
         # Initialize approximated (training) regressands
-        self.y_hat = np.zeros((self.Np, ))
+        self.y_hat_tr = np.zeros((self.Np_tr, ))
+        # Initialize approximated (test) regressands
+        self.y_hat_te = np.zeros((self.Np_te, ))
 
         # The error on the training set will be
-        self.err_train = np.zeros((self.Np,))
+        self.err_train = np.zeros((self.Np_tr,))
+        # The error on the test set will be
+        self.err_test = np.zeros((self.Np_te,))
 
         #################### Normalize values ############################################################
         # Define normalized values (on which the algorithm(s) will be performed)
-        self.mean_regressors = self.regressors.mean(axis=0)
-        self.stdev_regressors = self.regressors.std(axis=0)
+        self.mean_regressors = self.train_regressors.mean(axis=0)
+        self.stdev_regressors = self.train_regressors.std(axis=0)
         # WHAT TO DO WHEN STDEV=0? - set the standard deviation to a low value
         self.stdev_regressors[self.stdev_regressors == 0] = 1e-8
 
         if (not all(self.mean_regressors == np.zeros((self.Nf,))) or not all(self.stdev_regressors == np.ones((self.Nf,)))):
             # Normalize
-            self.regressors_norm = (
-                self.regressors - self.mean_regressors)/self.stdev_regressors
+            self.train_regressors_norm = (
+                self.train_regressors - self.mean_regressors)/self.stdev_regressors
+
+            self.test_regressors_norm = (
+                self.test_regressors - self.mean_regressors)/self.stdev_regressors
         else:
-            self.regressors_norm = self.regressors
+            self.train_regressors_norm = self.train_regressors
+            self.test_regressors_norm = self.test_regressors
 
         #
-        self.mean_regressand = self.regressand.mean(axis=0)
-        self.stdev_regressand = self.regressand.std(axis=0)
+        self.mean_regressand = self.train_regressand.mean(axis=0)
+        self.stdev_regressand = self.train_regressand.std(axis=0)
         if self.stdev_regressand == 0:
             self.stdev_regressand = 1e-8
 
         if (self.mean_regressand != 0 or self.stdev_regressand != 1):
             # Normalize
-            self.regressand_norm = (
-                self.regressand - self.mean_regressand)/self.stdev_regressand
+            self.train_regressand_norm = (
+                self.train_regressand - self.mean_regressand)/self.stdev_regressand
+
+            self.test_regressand_norm = (
+                self.test_regressand - self.mean_regressand)/self.stdev_regressand
         else:
-            self.regressand_norm = self.regressand
+            self.train_regressand_norm = self.train_regressand
+            self.test_regressand_norm = self.test_regressand
 
         ##################################################################################################
 
         # Number of closest
         self.N = N_closest
 
-    def solve(self, plot_y=False, save_y=False, imagepath_y="./img/11_LOCAL_training-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/12_LOCAL-training_err_hist.png'):
+    def solve(self, plot_y=False, save_y=False, imagepath_y=f"./img/11_LOCAL_training-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/12_LOCAL-training_err_hist.png'):
         """ 
         Test local regression model 
         ------------------------------------------------------------------------------
@@ -752,21 +862,21 @@ class LocalLR():
         ------------------------------------------------------------------------------
         """
 
-        Np = self.Np        # Number of patients in this set
+        Np = self.Np_tr        # Number of patients in this set
         Nf = self.Nf        # Number of features
         N = self.N          # Number of considered neighbors
 
-        # Isolate the regressors matrix and the regressand (training dataset)
-        X = np.copy(self.regressors_norm)
-        y = np.copy(self.regressand_norm)
+        # Isolate the NORMALIZED regressors matrix and the regressand (training dataset)
+        X_tr = np.copy(self.train_regressors_norm)
+        y = np.copy(self.train_regressand_norm)
 
         for i in range(Np):
             # Isolate current patient
-            x_curr = X[i, :]
+            x_curr = X_tr[i, :]
             y_curr = y[i]
 
             # Evaluate the distance of the current patient wrt each patient in the training set
-            distances = dist_eval(x_curr, X)
+            distances = dist_eval(x_curr, X_tr)
 
             # Find elements with minimum distance (i.e., indices of the N closest elements)
             sorted_vect = np.argsort(distances)
@@ -776,7 +886,7 @@ class LocalLR():
             y_closest = np.empty((N,))
             for ind1 in range(N):
                 # Fill X_closest & y_closest (corresponding patients)
-                X_closest[ind1, :] = np.copy(X[sorted_vect[ind1], :])
+                X_closest[ind1, :] = np.copy(X_tr[sorted_vect[ind1], :])
                 y_closest[ind1] = np.copy(y[sorted_vect[ind1]])
 
             # Create new LinearRegression object with X_closest and y_closest
@@ -795,25 +905,25 @@ class LocalLR():
             # Get weights for Local LR
             w_hat_SD_curr = LR_closest.w_hat_SD
             # Store it in column i of self.w_hat
-            self.w_hat[:, i] = np.copy(w_hat_SD_curr)
+            self.w_hat_tr[:, i] = np.copy(w_hat_SD_curr)
 
             # Get y_hat of the current patient (x_curr)
             y_hat_curr = np.reshape(
                 x_curr, (1, len(x_curr)))@np.reshape(w_hat_SD_curr, (len(w_hat_SD_curr), 1))
             # Store this result in element i of the vector self.y_hat
             # Need to de-normalize first
-            self.y_hat[i] = np.copy(
+            self.y_hat_tr[i] = np.copy(
                 y_hat_curr*self.stdev_regressand + self.mean_regressand)
 
             # Find error on the training set
-            error_curr = self.y_hat[i] - self.regressand[i]
+            error_curr = self.y_hat_tr[i] - self.train_regressand[i]
             # Place it in position i
             self.err_train[i] = np.copy(error_curr)
 
         # Plot y vs y_hat (copy before)
         if plot_y:
-            plt.figure(figsize=(8, 4))
-            plt.plot(self.regressand, self.y_hat, '.')   # Place dots
+            plt.figure(figsize=(6, 4))
+            plt.plot(self.train_regressand, self.y_hat_tr, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
             plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
@@ -830,7 +940,7 @@ class LocalLR():
         if plot_hist:
             e = self.err_train
 
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(6, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
                      label='training')
             plt.xlabel(r"$e = y - \^y$")
@@ -843,9 +953,9 @@ class LocalLR():
                 plt.savefig(imagepath_hist)
             plt.show()
 
-        return self.err_train, self.y_hat, self.w_hat
+        return self.err_train, self.y_hat_tr, self.w_hat_tr
 
-    def test(self, test_regressand, test_regressors, plot_y=False, save_y=False, imagepath_y="./img/13_LOCAL_test-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/14_LOCAL-test_err_hist.png'):
+    def test(self, plot_y=False, save_y=False, imagepath_y="./img/13_LOCAL_test-y_vs_y_hat.png", plot_hist=False, save_hist=False, imagepath_hist='./img/14_LOCAL-test_err_hist.png'):
         """ 
         Test local regression model 
         ------------------------------------------------------------------------------
@@ -869,35 +979,17 @@ class LocalLR():
         ------------------------------------------------------------------------------
         """
         # Find K nearest
-        Np_test = test_regressand.shape[0]      # n. patients in the test set
+        Np_test = self.Np_te      # n. patients in the test set
         Nf = self.Nf                            # number of features
         N = self.N
 
-        # Check dimensions
-        if test_regressors.shape[0] != Np_test:
-            raise ValueError(
-                "Error! The number of patients in the test regressors matrix is different from the one in the regressand!")
-
-        if test_regressors.values.shape[1] != Nf:
-            raise ValueError(
-                "Error! The number of features in the training set is not the same as in the test set!")
-
         # Isolate ndarrays of test set
-        y_test = test_regressand.values
-        X_test = test_regressors.values
-
-        # Normalize (wrt test set parameters)
-        X_test_norm = (X_test - self.mean_regressors)/self.stdev_regressors
-        y_test_norm = (y_test - self.mean_regressand)/self.stdev_regressand
+        X_test_norm = np.copy(self.test_regressors_norm)
+        y_test_norm = np.copy(self.test_regressand_norm)
 
         # Take training set (normalized values)
-        X_tr = self.regressors_norm
-        y_tr = self.regressand_norm
-
-        # Initialize the values:
-        w_hat_te = np.zeros((Nf, Np_test))      # Regression result
-        y_hat_te = np.zeros((Np_test, ))        # Approximated y (test set)
-        err_test = np.zeros((Np_test, ))        # Error vector
+        X_tr = np.copy(self.train_regressors_norm)
+        y_tr = np.copy(self.train_regressand_norm)
 
         # Iterate on all patients in the test set:
         for i in range(X_test_norm.shape[0]):
@@ -933,7 +1025,7 @@ class LocalLR():
             # Get weights for Local LR
             w_hat_te_curr = LR_closest_test.w_hat_SD
             # Store it in column i of w_hat_te
-            w_hat_te[:, i] = np.copy(w_hat_te_curr)
+            self.w_hat_te[:, i] = np.copy(w_hat_te_curr)
 
             # Get y_hat of the current patient (x_curr) - normalized
             y_hat_te_curr_norm = np.reshape(
@@ -941,16 +1033,16 @@ class LocalLR():
 
             # Store this result in element i of the vector self.y_hat
             # NOTE: after denormalizing
-            y_hat_te[i] = np.copy(
+            self.y_hat_te[i] = np.copy(
                 y_hat_te_curr_norm*self.stdev_regressand + self.mean_regressand)
 
             # Error - on de-normalized values
-            err_test[i] = y_test[i] - y_hat_te[i]
+            self.err_test[i] = self.test_regressand[i] - self.y_hat_te[i]
 
         # Plot y vs. y_hat
         if plot_y:
-            plt.figure(figsize=(8, 4))
-            plt.plot(y_test, y_hat_te, '.')   # Place dots
+            plt.figure(figsize=(6, 4))
+            plt.plot(self.test_regressand, self.y_hat_te, '.')   # Place dots
             v = plt.axis()
             # Plot 45deg diagonal line
             plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
@@ -965,9 +1057,9 @@ class LocalLR():
 
         # Plot error histogram
         if plot_hist:
-            e = err_test
+            e = self.err_test
 
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(6, 4))
             plt.hist(e, bins=50, density=True, histtype='bar',
                      label='training')
             plt.xlabel(r"$e = y - \^y$")
@@ -980,9 +1072,9 @@ class LocalLR():
                 plt.savefig(imagepath_hist)
             plt.show()
 
-        return err_test, y_hat_te, w_hat_te
+        return self.err_test, self.y_hat_te, self.w_hat_te
     
-    def errorAnalysis(self, test_regressand, test_regressors, plot_hist=False, save_hist=False, imagepath_hist='./img/15_LOCAL_error-hist_train-vs-test.png'):
+    def errorAnalysis(self, plot_hist=False, save_hist=False, imagepath_hist='./img/15_LOCAL_error-hist_train-vs-test.png'):
         """
         errorAnalysis 
         ------------------------------------------------------------------------------
@@ -1011,12 +1103,13 @@ class LocalLR():
         ------------------------------------------------------------------------------
         """
         
-        if (self.w_hat == 0).all():
+        if (self.w_hat_tr == 0).all():
             self.solve()
+        
+        if (self.w_hat_te == 0).all():
+            self.test()
 
-        err_test, y_hat_te = self.test(test_regressand, test_regressors)[:2]
-
-        err = [self.err_train, err_test]
+        err = [self.err_train, self.err_test]
 
         if plot_hist:
             plt.figure(figsize=(8, 4))
@@ -1034,7 +1127,7 @@ class LocalLR():
             plt.show()
 
         # Produce DF
-        y_te = test_regressand.values
+        y_te = self.test_regressand
 
         # Analysis for SD
         # Training set
@@ -1044,22 +1137,22 @@ class LocalLR():
         E_tr_sigma = self.err_train.std()
         E_tr_MSE = np.mean(self.err_train**2)
         # R^2 (coefficient of determination)
-        R2_tr = 1 - E_tr_MSE/(np.std(self.regressand)**2)
+        R2_tr = 1 - E_tr_MSE/(np.std(self.train_regressand)**2)
         # Correlation coefficient
-        c_tr = np.mean((self.regressand - self.regressand.mean())*(self.y_hat - self.y_hat.mean())
-                       )/(self.regressand.std()*self.y_hat.std())
+        c_tr = np.mean((self.train_regressand - self.mean_regressand)*(self.y_hat_tr - self.y_hat_tr.mean())
+                       )/(self.stdev_regressand*self.y_hat_tr.std())
 
         # Test set
-        E_te_min = err_test.min()
-        E_te_max = err_test.max()
-        E_te_mu = err_test.mean()
-        E_te_sigma = err_test.std()
-        E_te_MSE = np.mean(err_test**2)
+        E_te_min = self.err_test.min()
+        E_te_max = self.err_test.max()
+        E_te_mu = self.err_test.mean()
+        E_te_sigma = self.err_test.std()
+        E_te_MSE = np.mean(self.err_test**2)
         # R^2 (coefficient of determination)
         R2_te = 1 - E_te_MSE/(np.std(y_te)**2)
         # Correlation coefficient
-        c_te = np.mean((y_te - y_te.mean())*(y_hat_te - y_hat_te.mean())
-                       )/(y_te.std()*y_hat_te.std())
+        c_te = np.mean((y_te - y_te.mean())*(self.y_hat_te - self.y_hat_te.mean())
+                       )/(y_te.std()*self.y_hat_te.std())
 
         rows = ['Training', 'Test']
         cols = ['min', 'max', 'mean', 'std', 'MSE', 'R^2', 'corr_coeff']

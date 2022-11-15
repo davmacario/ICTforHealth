@@ -1,14 +1,11 @@
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import sub.minimization as mymin
 import sub.linearRegression as myLR
 
-
-# TODO [6]: run the program also with 20 values of the seed and average results
-
-
-#### Preparing and analyzing the data: #################################
+#%%#### Preparing and analyzing the data: #################################
 
 # Read Parkinson's data file and store result in
 # a DataFrame (data structure defined by Pandas)
@@ -122,7 +119,7 @@ X_te = Xsh[Ntr:].drop(
 y_te = Xsh['total_UPDRS'][Ntr:]
 
 # Create LinearRegression object
-LR = myLR.LinearRegression(y_tr, X_tr)
+LR = myLR.LinearRegression(y_tr, X_tr, y_te, X_te)
 
 # Solve Linear Regression using both LLS and Steepest Descent, then
 # compare the resulting w_hat by plotting
@@ -131,17 +128,17 @@ LR.solve_SteepestDescent(stoppingCondition='iterations', Nit=200, plot_y=True, s
 LR.plot_w(save_png=True)
 
 # Performance evaluation - using test set
-LR.LLS_test(y_te, X_te, plot_hist=True, save_hist=True, plot_y=True, save_y=True)
-LR.SD_test(y_te, X_te, plot_hist=True, save_hist=True, plot_y=True, save_y=True)
+LR.LLS_test(plot_hist=True, save_hist=True, plot_y=True, save_y=True)
+LR.SD_test(plot_hist=True, save_hist=True, plot_y=True, save_y=True)
 
-error_vect = LR.test(y_te, X_te, plot_hist=True, save_hist=True)
+error_vect = LR.test(plot_hist=True, save_hist=True)
 
-finalResults = LR.errorAnalysis(y_te, X_te)
+finalResults = LR.errorAnalysis()
 print("\nError analysis:")
 print(finalResults)
 
 #%%############# PART 2 - LOCAL LINEAR REGRESSION ##############################
-N_closest = [10, 20, 50, 70, 100, 200, 400]
+N_closest = [10, 20, 50, 100]
 # N_closest = [20]
 
 size = X_tr.shape[0]
@@ -150,13 +147,13 @@ print(f"N. of patients in training set: {size}")
 results_local = []
 
 for N in N_closest:
-    LocalLinearRegression = myLR.LocalLR(y_tr, X_tr, N)
+    LocalLinearRegression = myLR.LocalLR(y_tr, X_tr, y_te, X_te, N)
     train_error_matrix = LocalLinearRegression.solve(
         plot_y=True, save_y=True, imagepath_y= f"./img/11_LOCAL_training-y_vs_y_hat_N{N}.png" , plot_hist=True, save_hist=True, imagepath_hist= f'./img/12_LOCAL-training_err_hist_N{N}.png')[0]
 
 # Evaluate performance on test set
-    LocalLinearRegression.test(y_te, X_te, plot_y=True, save_y=True, imagepath_y= f"./img/13_LOCAL_test-y_vs_y_hat_N{N}.png", plot_hist=True, save_hist=True, imagepath_hist= f'./img/14_LOCAL-test_err_hist_N{N}.png')
-    results_N = LocalLinearRegression.errorAnalysis(y_te, X_te, plot_hist=True, save_hist=True, imagepath_hist= f'./img/15_LOCAL_error-hist_train-vs-test_N{N}.png')
+    LocalLinearRegression.test(plot_y=True, save_y=True, imagepath_y= f"./img/13_LOCAL_test-y_vs_y_hat_N{N}.png", plot_hist=True, save_hist=True, imagepath_hist= f'./img/14_LOCAL-test_err_hist_N{N}.png')
+    results_N = LocalLinearRegression.errorAnalysis(plot_hist=True, save_hist=True, imagepath_hist= f'./img/15_LOCAL_error-hist_train-vs-test_N{N}.png')
     results_local.append(results_N)
 
     print(f"\nN = {N}")
@@ -192,8 +189,8 @@ X_str = X.drop(['subject#', 'Jitter:DDP', 'Shimmer:DDA'], axis=1)
 
 for index in range(len(seeds)):
     
-    print(f"\nIteration number {index+1}: -----------------------------------------")
-    print(f"Seed = {seeds[index]}\n")
+    # print(f"\nIteration number {index+1}: -----------------------------------------")
+    # print(f"Seed = {seeds[index]}\n")
 
     np.random.seed(seeds[index])
 
@@ -220,42 +217,41 @@ for index in range(len(seeds)):
     y_te = Xsh['total_UPDRS'][Ntr:]
 
     # Create LinearRegression object
-    LR = myLR.LinearRegression(y_tr, X_tr)
+    LR = myLR.LinearRegression(y_tr, X_tr, y_te, X_te)
 
     # Solve Linear Regression using both LLS and Steepest Descent, then
     # compare the resulting w_hat by plotting
     LR.solve_LLS()
     LR.solve_SteepestDescent(stoppingCondition='iterations', Nit = 200)
-    # LR.plot_w()
 
     # Performance evaluation - using test set
-    LR.LLS_test(y_te, X_te)
-    LR.SD_test(y_te, X_te)
+    LR.LLS_test()
+    LR.SD_test()
 
-    error_vect = LR.test(y_te, X_te)
+    #error_vect = LR.test()
 
-    finalResults = LR.errorAnalysis(y_te, X_te)
-    print("\nError analysis:")
-    print(finalResults)
+    finalResults = LR.errorAnalysis()
+    # print("\nError analysis:")
+    # print(finalResults)
     results_LR_20.append(finalResults)                          ######
 
     ####### Local linear regresison
     size = X_tr.shape[0]
-    print(f"N. of patients in training set: {size}")
+    # print(f"N. of patients in training set: {size}")
 
     results_local = []
 
     for N in N_closest:
-        LocalLinearRegression = myLR.LocalLR(y_tr, X_tr, N)
+        LocalLinearRegression = myLR.LocalLR(y_tr, X_tr, y_te, X_te, N)
         train_error_matrix = LocalLinearRegression.solve()[0]
 
     # Evaluate performance on test set
-        LocalLinearRegression.test(y_te, X_te)
-        results_N = LocalLinearRegression.errorAnalysis(y_te, X_te)
+        LocalLinearRegression.test()
+        results_N = LocalLinearRegression.errorAnalysis()
         results_local.append(results_N)
 
-        print(f"N = {N}")
-        print(results_N)
+        # print(f"N = {N}")
+        # print(results_N)
     
     results_local_20.append(results_local)                      ######
 

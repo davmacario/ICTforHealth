@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import sub.minimization as mymin
-import sub.linearRegression as myLR
+import sub.linearRegression_old as myLR
 
 #### Preparing and analyzing the data: #################################
 
