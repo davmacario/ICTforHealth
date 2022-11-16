@@ -54,7 +54,7 @@ class SolveLLS(SolveMinProbl):
         w_hat = np.linalg.inv(A.T@A)@(A.T@y)
         self.sol = w_hat
         self.min = np.linalg.norm(A@w_hat-y)**2
-        return
+        return w_hat
 
 
 # Define class SolveGrad which inherits from SolveMinProbl (Same methods work)
@@ -141,6 +141,7 @@ class SteepestDescent(SolveMinProbl):
         -------------------------------------------------------------------------
         2 stopping conditions:
         - 'iterations' (default): stop at a specific inumber of iterations (Nit)
+          (but also grad > eps)
         - 'epsilon': stop when the norm of the gradient vector is lower than a 
           specific value (eps)
         -------------------------------------------------------------------------
@@ -159,9 +160,11 @@ class SteepestDescent(SolveMinProbl):
         # Initial w: random
         w = np.random.rand(self.Nf,)
 
+        grad = np.ones((Nf,))
+        errList = []
+
         if stoppingCondition == 'epsilon':
-            grad = np.ones((Nf,))
-            errList = []
+            
             iter = 0
             while np.linalg.norm(grad) >= eps:
                 grad = 2*A.T@(A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))
@@ -179,28 +182,28 @@ class SteepestDescent(SolveMinProbl):
                 errList.append(newrow)
 
                 iter += 1
-            # By appending to a list and only then creating an array the code runs noticeably faster
-            self.err = np.array(errList)
         
         #elif stoppingCondition == 'iterations':
-        else:       # This is the default solution
-            self.err = np.zeros((Nit, 2), dtype=float)
+        else:       # This is the default solution ()
             for it in range(Nit):
 
                 grad = 2*A.T@(A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))
 
-                # gamma = (np.linalg.norm(grad)**2)/((grad.T@Hess)@grad)
-                numer = np.linalg.norm(grad)**2
-                denom = float((grad.T@Hess)@grad)
+                if (np.linalg.norm(grad) >= eps):
+                    # gamma = (np.linalg.norm(grad)**2)/((grad.T@Hess)@grad)
+                    numer = np.linalg.norm(grad)**2
+                    denom = float((grad.T@Hess)@grad)
 
-                gamma = numer/denom
+                    gamma = numer/denom
 
-                w = w - gamma*(grad.reshape(len(grad),))
+                    w = w - gamma*(grad.reshape(len(grad),))
 
-                newrow = [it, np.linalg.norm(
-                    A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))**2]
+                    newrow = [it, np.linalg.norm(
+                        A@(w.reshape(len(w), 1)) - y.reshape(len(y), 1))**2]
 
-                self.err[it, :] = np.copy(newrow)
+                    errList.append(newrow)
+
+        self.err = np.array(errList)
 
         self.sol = w.reshape(len(w),)
         self.min = self.err[-1, 1]

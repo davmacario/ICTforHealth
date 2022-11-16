@@ -79,8 +79,8 @@ class LinearRegression():
         self.train_regressand = train_regressand.values
         self.train_regressors = train_regressors.values
 
-        self.test_regressand = test_regressand.values if (self.test_defined) else np.zeros((self.Np_tr,))
-        self.test_regressors = test_regressors.values if (self.test_defined) else np.zeros((self.Np_tr, self.Nf))
+        self.test_regressand = test_regressand.values if (self.test_defined) else np.zeros((self.Np_tr,), dtype=float)
+        self.test_regressors = test_regressors.values if (self.test_defined) else np.zeros((self.Np_tr, self.Nf), dtype=float)
 
         # Feature names
         self.regressing_features = list(train_regressors.columns)
@@ -88,24 +88,24 @@ class LinearRegression():
         self.regressand_name = str(train_regressand.name)
 
         # Initialize solutions
-        self.w_hat_LLS = np.zeros((self.Nf,))
-        self.w_hat_SD = np.zeros((self.Nf,))
+        self.w_hat_LLS = np.zeros((self.Nf,), dtype=float)
+        self.w_hat_SD = np.zeros((self.Nf,), dtype=float)
 
         # Initialize approximated train regressands
-        self.y_hat_tr_LLS = np.zeros((self.Np_tr,))
-        self.y_hat_tr_SD = np.zeros((self.Np_tr,))
+        self.y_hat_tr_LLS = np.zeros((self.Np_tr,), dtype=float)
+        self.y_hat_tr_SD = np.zeros((self.Np_tr,), dtype=float)
 
         # Initialize approximated test regressands
-        self.y_hat_te_LLS = np.zeros((self.Np_te,))
-        self.y_hat_te_SD = np.zeros((self.Np_te,))
+        self.y_hat_te_LLS = np.zeros((self.Np_te,), dtype=float)
+        self.y_hat_te_SD = np.zeros((self.Np_te,), dtype=float)
 
         # Initialize normalized approximated train regressands
-        self.y_hat_tr_LLS_norm = np.zeros((self.Np_tr,))
-        self.y_hat_tr_SD_norm = np.zeros((self.Np_tr,))
+        self.y_hat_tr_LLS_norm = np.zeros((self.Np_tr,), dtype=float)
+        self.y_hat_tr_SD_norm = np.zeros((self.Np_tr,), dtype=float)
 
         # Initialize normalized approximated test regressands
-        self.y_hat_te_LLS_norm = np.zeros((self.Np_te,))
-        self.y_hat_te_SD_norm = np.zeros((self.Np_te,))
+        self.y_hat_te_LLS_norm = np.zeros((self.Np_te,), dtype=float)
+        self.y_hat_te_SD_norm = np.zeros((self.Np_te,), dtype=float)
 
         if normalize:
             # Define normalized values (on which the algorithm(s) will be performed)
@@ -152,8 +152,8 @@ class LinearRegression():
 
         else:
             # No normalization - set all means to 0 and stdev to 1
-            self.mean_regressors = np.zeros((1, len(self.regressing_features)))
-            self.stdev_regressors = np.ones((1, len(self.regressing_features)))
+            self.mean_regressors = np.zeros((1, len(self.regressing_features)), dtype=float)
+            self.stdev_regressors = np.ones((1, len(self.regressing_features)), dtype=float)
             self.train_regressors_norm = self.train_regressors
             self.test_regressors_norm = self.test_regressors
 
@@ -165,11 +165,11 @@ class LinearRegression():
             # NOTE: regressors_norm and regressand_norm will not necessarily be normalized in this case
 
         # Init. error vectors
-        self.LLS_error_train = np.zeros((self.Np_tr,))
-        self.SD_error_train = np.zeros((self.Np_tr,))
+        self.LLS_error_train = np.zeros((self.Np_tr,), dtype=float)
+        self.SD_error_train = np.zeros((self.Np_tr,), dtype=float)
 
-        self.LLS_error_test = np.zeros((self.Np_te,))
-        self.SD_error_test = np.zeros((self.Np_te,))
+        self.LLS_error_test = np.zeros((self.Np_te,), dtype=float)
+        self.SD_error_test = np.zeros((self.Np_te,), dtype=float)
 
     def solve_LLS(self, plot_w=False, save_w=False, imagepath_w="./img/01_LLS-w_hat.png", plot_y=False, save_y=False, imagepath_y="./img/02_LLS-y_vs_y_hat.png"):
         """
@@ -191,8 +191,10 @@ class LinearRegression():
         """
         X_tr_norm = self.train_regressors_norm
         y_tr_norm = self.train_regressand_norm
-        self.w_hat_LLS = np.linalg.inv(
-            X_tr_norm.T@X_tr_norm)@(X_tr_norm.T@y_tr_norm)
+        #self.w_hat_LLS = np.linalg.inv(
+        #    X_tr_norm.T@X_tr_norm)@(X_tr_norm.T@y_tr_norm)
+
+        self.w_hat_LLS = mymin.SolveLLS(y_tr_norm, X_tr_norm).run()
 
         self.y_hat_tr_LLS_norm = X_tr_norm@(self.w_hat_LLS)
         self.y_hat_tr_LLS = self.stdev_regressand * \
@@ -775,19 +777,19 @@ class LocalLR():
         self.regressand_name = str(train_regressand.name)
 
         # Initialize solutions for Training Dataset (will be SD) - each w_hat will be one column of this matrix
-        self.w_hat_tr = np.zeros((self.Nf, self.Np_tr))
+        self.w_hat_tr = np.zeros((self.Nf, self.Np_tr), dtype=float)
         # Initialize solutions for Test Dataset (will be SD) - each w_hat will be one column of this matrix
-        self.w_hat_te = np.zeros((self.Nf, self.Np_te))
+        self.w_hat_te = np.zeros((self.Nf, self.Np_te), dtype=float)
 
         # Initialize approximated (training) regressands
-        self.y_hat_tr = np.zeros((self.Np_tr, ))
+        self.y_hat_tr = np.zeros((self.Np_tr, ), dtype=float)
         # Initialize approximated (test) regressands
-        self.y_hat_te = np.zeros((self.Np_te, ))
+        self.y_hat_te = np.zeros((self.Np_te, ), dtype=float)
 
         # The error on the training set will be
-        self.err_train = np.zeros((self.Np_tr,))
+        self.err_train = np.zeros((self.Np_tr,), dtype=float)
         # The error on the test set will be
-        self.err_test = np.zeros((self.Np_te,))
+        self.err_test = np.zeros((self.Np_te,), dtype=float)
 
         #################### Normalize values ############################################################
         # Define normalized values (on which the algorithm(s) will be performed)
