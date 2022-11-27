@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.cluster as sk
-import scipy.integrate as integ
 
 
 def findSS(y, x):
@@ -33,15 +32,8 @@ def findSS(y, x):
 
     return thresh, sensitivity, specificity
 
-def definitelyMyTrapezoidalRule(y, x):
-    tmp_int = 0
 
-    # tmp_int = integ.trapezoid(y_sort, x_sort)
 
-    for i in range(len(x)-1):
-        tmp_int += 0.5*(y[i] + y[i+1])*(x[i+1] - x[i])
-    
-    return tmp_int
 
 plt.rcParams["font.family"] = "Times New Roman"
 #%%
@@ -96,69 +88,11 @@ Test2 = xx.IgG_Test2_titre.values
 
 ############# Sensitivity and Specificity #######################################
 
-############# Test1 #################################################################
-x = Test1
-y = swab
+############# Test1
 
-x0 = x[swab==0]     # Test results for healthy
-x1 = x[swab==1]     # Test results for ill
-
-Np = np.sum(swab==1)    # number of ill
-Nn = np.sum(swab==0)    # number of healthy
-
-# Set the thresh
-thresh = 5
-
-n1 = np.sum(x1 > thresh)
-sens = n1/Np
-
-n0 = np.sum(x0 < thresh)
-spec = n0/Nn
-
-print(f"Sensitivity - test 1: {sens}\nSpecificity - test 1: {spec}")
-
-plt.figure()
-x_hist = [x0, x1]
-plt.hist(x_hist, bins=50, density=True, label=['Test is negative', 'Test is positive'])
-plt.legend()
-plt.xlabel("Test 1 result")
-plt.ylabel("p(value in bin)")
-plt.title("p.d.f. of of the test value, given")
-plt.show()
-
-# Now, using the defined function:
-thresh_list_1, sens_list_1, spec_list_1 = findSS(y, x)
-
-plt.figure()
-plt.plot(thresh_list_1, sens_list_1, 'b', label=r'p($T_p \| D$)')
-plt.plot(thresh_list_1, spec_list_1, 'r', label=r'p($T_n \| H$)')
-plt.grid()
-plt.legend()
-plt.xlabel('Threshold')
-plt.ylabel('Sens / Spec')
-plt.title('Sensitivity / Specificity vs. threshold  for Test 1')
-plt.show()
-
-######### ROC curve
-FA_1 = 1 - spec_list_1
-
-plt.figure()
-plt.plot(FA_1, sens_list_1, 'b')
-plt.plot([0, 1], [1, 0], 'r:', linewidth=0.5)
-plt.grid()
-plt.xlabel(r"$p(T_p \| H)$")
-plt.ylabel(r"$p(T_p \| D)$")
-plt.title("ROC curve - test 1")
-plt.show()
-
-######### AUC
-# Integrate via trapezoidal rule
-AuC = definitelyMyTrapezoidalRule(sens_list_1[::-1], FA_1[::-1])
-print(f"AuC - test 2: {AuC}")
-
-
-############# Test2 ##################################################################
+############# Test2
 x = Test2       
+y = swab        # Correct outcomes
 
 x0 = x[swab==0]     # Test results for healthy
 x1 = x[swab==1]     # Test results for ill
@@ -187,11 +121,11 @@ plt.title("p.d.f. of of the test value, given")
 plt.show()
 
 # Now, using the defined function:
-thresh_list_2, sens_list_2, spec_list_2 = findSS(y, x)
+thresh_list, sens_list, spec_list = findSS(y, x)
 
 plt.figure()
-plt.plot(thresh_list_2, sens_list_2, 'b', label=r'p($T_p \| D$)')
-plt.plot(thresh_list_2, spec_list_2, 'r', label=r'p($T_n \| H$)')
+plt.plot(thresh_list, sens_list, 'b', label=r'p($T_p \| D$)')
+plt.plot(thresh_list, np.ones((len(spec_list,))) - spec_list, 'r', label=r'p($T_n \| H$)')
 plt.grid()
 plt.legend()
 plt.xlabel('Threshold')
@@ -199,36 +133,11 @@ plt.ylabel('Sens / Spec')
 plt.title('Sensitivity / Specificity vs. threshold  for Test 2')
 plt.show()
 
-######### ROC curve
-FA_2 = 1 - spec_list_2
-
-plt.figure()
-plt.plot(FA_2, sens_list_2, 'b')
-plt.plot([0, 1], [1, 0], 'r:', linewidth=0.5)
-plt.grid()
-plt.xlabel(r"$p(T_p \| H)$")
-plt.ylabel(r"$p(T_p \| D)$")
-plt.title("ROC curve - test 2")
-plt.show()
-
-######### AUC
-# Integrate via trapezoidal rule
-AuC = definitelyMyTrapezoidalRule(sens_list_2[::-1], FA_2[::-1])
-print(f"AuC - test 2: {AuC}")
 
 
-############ ROC comparisons
 
-plt.figure()
-plt.plot(FA_1, sens_list_1, label='test 1')
-plt.plot(FA_2, sens_list_2, label='test 2')
-plt.plot([0, 1], [1, 0], 'r:', linewidth=0.5)
-plt.grid()
-plt.legend()
-plt.xlabel(r"$p(T_p \| H)$")
-plt.ylabel(r"$p(T_p \| D)$")
-plt.title("ROC curve - comparison")
-plt.show()
+
+
 
 
 ##
