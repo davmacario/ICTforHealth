@@ -57,5 +57,17 @@ plt.ylabel(r"$X_2$")
 plt.title("Test set")
 plt.show()
 
+# Print the tree
+feat_names = ["X_1", "X_2"]
+target_names = ["C=-1", "C=+1"]
 
-#
+fig, axes = plt.subplots(figsize=(10, 10))
+tree.plot_tree(clfX,
+               feature_names=feat_names,
+               class_names=target_names,
+               rounded=True,
+               filled=True)
+try:
+    fig.savefig("img/tree.png")
+except:
+    fig.savefig("exercises/img/tree.png")
