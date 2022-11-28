@@ -127,6 +127,7 @@ plt.legend()
 plt.xlabel("Test 1 value")
 plt.ylabel("p(value in bin)")
 plt.title("p.d.f. of of the test value, given swab test result")
+plt.grid()
 plt.show()
 
 # Now, using the defined function:
@@ -162,7 +163,7 @@ print(f"AuC - test 2: {AuC}")
 prevalence = 0.01
 
 p_h_given_neg_1 = (spec_list_1*(1-prevalence)) / \
-    (sens_list_1*prevalence + spec_list_1*(1-prevalence))
+    ((1-sens_list_1)*prevalence + spec_list_1*(1-prevalence))
 
 p_ill_given_neg_1 = 1 - p_h_given_neg_1
 
@@ -172,8 +173,8 @@ p_ill_given_pos_1 = (sens_list_1*prevalence) / \
 p_h_given_pos_1 = 1 - p_ill_given_pos_1
 
 plt.figure()
-plt.plot(thresh_list_1, p_ill_given_neg_1, label=r'$p(D|T_n)$')
-plt.plot(thresh_list_1, p_ill_given_pos_1, label=r'$p(D|T_p)$')
+plt.plot(thresh_list_1[1:], p_ill_given_neg_1[1:], label=r'$p(D|T_n)$')
+plt.plot(thresh_list_1[1:], p_ill_given_pos_1[1:], label=r'$p(D|T_p)$')
 plt.legend()
 plt.grid()
 plt.xlabel('threshold')
@@ -182,8 +183,8 @@ plt.title(r"$p(D|T_n)$ and $p(D|T_p)$ comparison - test 1")
 plt.show()
 
 plt.figure()
-plt.plot(thresh_list_1, p_h_given_neg_1, label=r'$p(H|T_n)$')
-plt.plot(thresh_list_1, p_h_given_pos_1, label=r'$p(H|T_p)$')
+plt.plot(thresh_list_1[1:], p_h_given_neg_1[1:], label=r'$p(H|T_n)$')
+plt.plot(thresh_list_1[1:], p_h_given_pos_1[1:], label=r'$p(H|T_p)$')
 plt.legend()
 plt.grid()
 plt.xlabel('threshold')
@@ -192,7 +193,7 @@ plt.title(r"$p(H|T_n)$ and $p(H|T_p)$ comparison - test 1")
 plt.show()
 
 plt.figure()
-plt.plot(p_ill_given_pos_1, p_h_given_neg_1)
+plt.plot(p_ill_given_pos_1[1:], p_h_given_neg_1[1:])
 plt.grid()
 plt.ylabel(r"p(H|T_n)")
 plt.xlabel(r"p(D|T_p)")
@@ -277,7 +278,7 @@ plt.show()
 prevalence = 0.01
 
 p_h_given_neg_2 = (spec_list_2*(1-prevalence)) / \
-    (sens_list_2*prevalence + spec_list_2*(1-prevalence))
+    ((1-sens_list_2)*prevalence + spec_list_2*(1-prevalence))
 
 p_ill_given_neg_2 = 1 - p_h_given_neg_2
 
