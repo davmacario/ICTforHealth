@@ -14,9 +14,8 @@ Nf = 2
 N_train = 1000
 # Since function rand() generates samples in [0,1], need to fit them in [-1, 1]
 X_tr = 2*np.random.rand(N_train, Nf) - np.ones((N_train, Nf))
-C_tr = np.zeros((N_train,))
-for i in range(N_train):
-    C_tr[i] = C(X_tr[i, :])
+
+C_tr = np.apply_along_axis(C, 1, X_tr)
 
 X_tr_b = X_tr[C_tr == +1, :]
 X_tr_r = X_tr[C_tr == -1, :]
