@@ -125,6 +125,9 @@ for i in activities:
     plt.xlabel('time (s)')
     plt.tight_layout()
     plt.title(actNames[i-1])
+
+
+
 #%% plot centroids and stand. dev. of sensor values
 print('Number of used sensors: ',len(sensors))
 centroids=np.zeros((NAc,len(sensors)))# centroids for all the activities
@@ -155,6 +158,9 @@ plt.grid()
 plt.title('Standard deviation using '+str(len(sensors))+' sensors')
 plt.xticks(np.arange(x.shape[1]),list(x.columns),rotation=90)
 plt.tight_layout()
+
+
+
 #%% between centroids distance 
 d=np.zeros((NAc,NAc))
 for i in range(NAc):
@@ -166,6 +172,8 @@ plt.colorbar()
 plt.xticks(np.arange(NAc),actNamesShort,rotation=90)
 plt.yticks(np.arange(NAc),actNamesShort)
 #plt.title('Between-centroids distance')
+
+
 
 #%% compare minimum distance between two centroids and mean distance from a cluster point
 # and its centroid
