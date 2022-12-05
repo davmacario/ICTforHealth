@@ -1,10 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from sub.preprocessor import preprocessor
 
 """ 
-- TODO[1]: Conclude draft program - look at all plots/features/activities
-- TODO[2]: Decide processing strategy
 - TODO[3]: Implement processing strategy (object-oriented if possible)
 - TODO[4]: Look for better results than in slide 26
 - TODO[5]: Separate processed data in training and test sets and apply sklearn 
@@ -42,10 +41,10 @@ def generateDF(filedir, colnames, patients, activities, slices):
         for a in activities:
             subdir='a'+f"{a:02d}"+'/p'+str(pat)+'/'
             for s in slices:
-                filename=filedir+subdir+'s'+f"{s:02d}"+'.txt'
-                x1=pd.read_csv(filename,names=colnames)
-                x1['activity']=a*np.ones((x1.shape[0],),dtype=int)
-                x=pd.concat([x,x1], axis=0, join='outer', ignore_index=True, 
+                filename = filedir+subdir + 's' + f"{s:02d}" + '.txt'
+                x1 = pd.read_csv(filename,names=colnames)
+                x1['activity'] = a*np.ones((x1.shape[0],), dtype=int)
+                x=pd.concat([x, x1], axis=0, join='outer', ignore_index=True, 
                             keys=None, levels=None, names=None, verify_integrity=False, 
                             sort=False, copy=True)
     return x
@@ -130,65 +129,119 @@ Num_activities = len(activities)        # Number of considered activities
 NAc = 19                                # Total number of activities
 actNamesSub = [actNamesShort[i-1] for i in activities] # short names of the selected activities
 
-sensors = list(range(9))                # List of sensors (TO BE TUNED)
-sensNamesSub = [sensNames[i] for i in sensors] # Names of selected sensors
+n_sensors_tot = 45                           # Total number of sensors (TO BE TUNED)
+sensors_IDs = list(range(n_sensors_tot))        # List of sensors 
+sensNamesSub = [sensNames[i] for i in sensors_IDs] # Names of selected sensors
 
 Nslices = 12                            # Number of slices to plot (TO BE TUNED)
+# Nslices = 30
 Ntot = 60                               # Total number of slices
 slices = list(range(1,Nslices+1))       # First Nslices to plot
 
 fs = 25                                 # Hz, sampling frequency (fixed)
 samplesPerSlice = fs*5                  # Samples in each slice (fixed)
 
+
 #%%##########################################################################################
 # Plot centroids and stand. dev. of sensor values
 # All activities considered, but only 9 features
 
-print('Number of used sensors: ',len(sensors))
+# tbr_sens = ['T_xgyro','T_ygyro','T_zgyro',
+#     'RA_xgyro','RA_ygyro','RA_zgyro',
+#     'LA_xgyro','LA_ygyro','LA_zgyro',
+#     'RL_xgyro','RL_ygyro','RL_zgyro',
+#     'LL_xgyro','LL_ygyro','LL_zgyro']
 
-centroids = np.zeros((NAc,len(sensors)))        # Centroids for all the activities
-stdpoints = np.zeros((NAc,len(sensors)))        # Variance in cluster for each sensor
+## Only keep Accel
+# tbr_ind = [3, 4, 5, 6, 7, 8,
+#             12, 13, 14, 15, 16, 17,
+#             21, 22, 23, 24, 25, 26,
+#             30, 31, 32, 33, 34, 35,
+#             39, 40, 41, 42, 43, 44]
+
+## Only keep Gyro
+# tbr_ind = [0, 1, 2, 6, 7, 8,
+#             9, 10, 11, 15, 16, 17,
+#             18, 19, 20, 24, 25, 26,
+#             27, 28, 29, 33, 34, 35,
+#             36, 37, 38, 42, 43, 44]
+
+## Only keep Magnetometer               # Best for now
+tbr_ind = [0, 1, 2, 3, 4, 5,
+            9, 10, 11, 12, 13, 14,
+            18, 19, 20, 21, 22, 23,
+            27, 28, 29, 30, 31, 32,
+            36, 37, 38, 39, 40, 41]
+
+
+## Keep accelerometer and magnetometer
+# tbr_ind = [0, 2, 3, 4, 5,
+#             9, 11, 12, 13, 14,
+#             18, 20, 21, 22, 23,
+#             27, 28, 30, 31, 32,
+#             36, 37, 39, 40, 41]
+
+# tbr_ind = []
+tbr_sens = [sensNames[i] for i in tbr_ind]
+
+used_sensors = [elem for elem in sensors_IDs if elem not in tbr_ind]
+used_sensorNames = [elem for elem in sensNamesSub]
+
+print('Number of used sensors: ',len(used_sensors))
+
+centroids = np.zeros((NAc,len(used_sensors)))        # Centroids for all the activities
+stdpoints = np.zeros((NAc,len(used_sensors)))        # Variance in cluster for each sensor
 
 plt.figure(figsize=(12,6))
 
-for i in range(1, NAc + 1):
+for i in range(1, NAc + 1):         # Extract all activities
     activities = [i]
     try:
         x = generateDF(filedir1,sensNamesSub,patients,activities,slices)
     except:
         x = generateDF(filedir2,sensNamesSub,patients,activities,slices)
+
+    # Select columns to be removed
+    x = x.drop(columns=tbr_sens)
+    
+
     x = x.drop(columns=['activity'])
-     
+    
+    ########## PREPROCESSING
+    # DBSCAN
+    # Undersampling - consider as samples the average of 25 measurements - from 25 Hz to 1
+    x = preprocessor(x, us_factor=5, dbscan=True, dbscan_eps=8, dbscan_M=3)        ## (Nslices*125)x(n_sensors)
+
     centroids[i-1,:]=x.mean().values
 
     plt.subplot(1,2,1)
-    lines = plt.plot(centroids[i-1,:],label=actNamesShort[i-1])
+    lines = plt.plot(centroids[i-1,:], label=actNamesShort[i-1])
     lines[0].set_color(cm(i//3*3/NAc))
     lines[0].set_linestyle(line_styles[i%3])
 
-    stdpoints[i-1] = np.sqrt(x.var().values)
+    stdpoints[i-1] = np.sqrt(x.var().values)        # Update stdev
     
     plt.subplot(1,2,2)
-    lines = plt.plot(stdpoints[i-1,:],label=actNamesShort[i-1])
+    lines = plt.plot(stdpoints[i-1,:], label=actNamesShort[i-1])
     lines[0].set_color(cm(i//3*3/NAc))
     lines[0].set_linestyle(line_styles[i%3])
 
 plt.subplot(1,2,1)
 plt.legend(loc='upper right')
 plt.grid()
-plt.title('Centroids using '+str(len(sensors))+' sensors')
+plt.title('Centroids using '+str(len(used_sensors))+' sensors')
 plt.xticks(np.arange(x.shape[1]),list(x.columns),rotation=90)
 
 plt.subplot(1,2,2)
 plt.legend(loc='upper right')
 plt.grid()
-plt.title('Standard deviation using '+str(len(sensors))+' sensors')
+plt.title('Standard deviation using '+str(len(used_sensors))+' sensors')
 plt.xticks(np.arange(x.shape[1]),list(x.columns),rotation=90)
 
 plt.tight_layout()
 plt.show()
 
-#%%##########################################################################################\
+#%%##########################################################################################
 # Inter-centroid distance
 d = np.zeros((NAc, NAc))        # Element i, j is squared norm of dist between centroid i and j
 
@@ -203,3 +256,28 @@ plt.xticks(np.arange(NAc),actNamesShort,rotation=90)
 plt.yticks(np.arange(NAc),actNamesShort)
 plt.title('Between-centroids distance')
 plt.show()
+
+# Goal: high distance between centroids (clearly a lot of centroids are critically close)
+#%%##########################################################################################
+# Find minimum distance between each centroid and all others
+
+dd=d+np.eye(NAc)*1e6        # Remove zeros on the diagonal (distance of centroid from itself)
+
+dmin=dd.min(axis=0)         # Find the minimum distance for each centroid
+
+# Average distance between each centroid and all others
+dpoints = np.sqrt(np.sum(stdpoints**2, axis=1))
+
+plt.figure()
+plt.plot(dmin,label='minimum centroid distance')
+plt.plot(dpoints,label='mean distance from points to centroid')
+plt.grid()
+plt.xticks(np.arange(NAc),actNamesShort,rotation=90)
+plt.legend()
+plt.tight_layout()
+# if the minimum distance is less than the mean distance, then some points of the cluster are closer 
+# to another centroid
+plt.show()
+
+
+
