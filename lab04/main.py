@@ -4,7 +4,6 @@ import numpy as np
 from sub.preprocessor import preprocessor
 
 """ 
-- TODO[3]: Implement processing strategy (object-oriented if possible)
 - TODO[4]: Look for better results than in slide 26
 - TODO[5]: Separate processed data in training and test sets and apply sklearn 
 - TODO[6]: Find mapping between cluster and activity to check results
