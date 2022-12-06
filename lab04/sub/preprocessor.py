@@ -21,7 +21,7 @@ def preprocessor(df, drop_feat = [], us_factor=1, meanSqXYZ=False, dbscan=False,
     n_p, n_f = df.shape
 
     # Drop features
-    df_start.drop(drop_feat)
+    df_start = df_start.drop(columns=drop_feat)
 
     feat_list = df_start.columns
 

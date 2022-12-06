@@ -134,7 +134,7 @@ sensors_IDs = list(range(n_sensors_tot))        # List of sensors
 sensNamesSub = [sensNames[i] for i in sensors_IDs] # Names of selected sensors
 
 Nslices = 12                            # Number of slices to plot (TO BE TUNED)
-# Nslices = 30
+# Nslices = 60
 Ntot = 60                               # Total number of slices
 slices = list(range(1,Nslices+1))       # First Nslices to plot
 
@@ -208,9 +208,6 @@ for i in range(1, NAc + 1):         # Extract all activities
         x = generateDF(filedir1,sensNamesSub,patients,activities,slices)
     except:
         x = generateDF(filedir2,sensNamesSub,patients,activities,slices)
-
-    # Select columns to be removed
-    x = x.drop(columns=tbr_sens)
     
 
     x = x.drop(columns=['activity'])
@@ -218,7 +215,7 @@ for i in range(1, NAc + 1):         # Extract all activities
     ########## PREPROCESSING
     # DBSCAN
     # Undersampling - consider as samples the average of 25 measurements - from 25 Hz to 1
-    x = preprocessor(x, us_factor=20, dbscan=True, dbscan_eps=0.5, dbscan_M=5)        ## (Nslices*125)x(n_sensors)
+    x = preprocessor(x, drop_feat=tbr_sens, us_factor=25, dbscan=True, dbscan_eps=0.7, dbscan_M=6)        ## (Nslices*125)x(n_sensors)
 
     centroids[i-1,:]=x.mean().values
 
