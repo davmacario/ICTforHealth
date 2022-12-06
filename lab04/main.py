@@ -173,7 +173,6 @@ tbr_ind = [0, 1, 2, 3, 4, 5,
             27, 28, 29, 30, 31, 32,
             36, 37, 38, 39, 40, 41]
 
-
 ## Keep accelerometer and magnetometer
 # tbr_ind = [0, 2, 3, 4, 5,
 #             9, 11, 12, 13, 14,
@@ -181,7 +180,16 @@ tbr_ind = [0, 1, 2, 3, 4, 5,
 #             27, 28, 30, 31, 32,
 #             36, 37, 39, 40, 41]
 
-# tbr_ind = []
+
+#### Keep magnetometer plus legs accel.
+# tbr_ind = [0, 1, 2, 3, 4, 5,
+#             9, 10, 11, 12, 13, 14,
+#             18, 19, 20, 21, 22, 23,
+#             27, 28, 29, 30, 31, 32,
+#             36, 37, 38, 39, 40, 41]
+
+
+#tbr_ind = []
 tbr_sens = [sensNames[i] for i in tbr_ind]
 
 used_sensors = [elem for elem in sensors_IDs if elem not in tbr_ind]
@@ -210,7 +218,7 @@ for i in range(1, NAc + 1):         # Extract all activities
     ########## PREPROCESSING
     # DBSCAN
     # Undersampling - consider as samples the average of 25 measurements - from 25 Hz to 1
-    x = preprocessor(x, us_factor=5, dbscan=True, dbscan_eps=8, dbscan_M=3)        ## (Nslices*125)x(n_sensors)
+    x = preprocessor(x, us_factor=20, dbscan=True, dbscan_eps=0.5, dbscan_M=5)        ## (Nslices*125)x(n_sensors)
 
     centroids[i-1,:]=x.mean().values
 
