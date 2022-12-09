@@ -25,3 +25,7 @@ Need to **decide a preprocessing strategy to maximize final accuracy** - knowing
 The ultimate goal is to produce a ***simple strategy*** (light computational cost and quick).
 
 Can use **at most 30 (/60) slices in the training phase** and can do less than 1 decision per timestamp (undersampling), e.g., 1 decision per second (every 25 samples).
+
+### Updates
+
+* 2022-12-09: Still, the best clustering separation is achieved by just considering magnetometer
