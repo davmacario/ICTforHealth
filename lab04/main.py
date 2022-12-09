@@ -275,7 +275,7 @@ for i in range(1, NAc + 1):         # Extract all activities
     # Undersampling - consider as samples the average of 25 measurements - from 25 Hz to 1
     # DBSCAN
     x = preprocessor(x, drop_feat=tbr_sens, us_factor=25, dbscan=True,
-                     dbscan_eps=200, dbscan_M=6, takeVar=takevar_sens,
+                     dbscan_eps=0.7, dbscan_M=6, takeVar=takevar_sens,
                      var_norm=True, var_thresh=1)  # (Nslices*125)x(n_sensors)
 
     centroids[i-1, :] = x.mean().values
@@ -348,7 +348,7 @@ plt.tight_layout()
 plt.show()
 
 
-exit()
+# exit()
 
 
 #%%################# Classification #################################
