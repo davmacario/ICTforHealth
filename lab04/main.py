@@ -29,22 +29,23 @@ from sklearn.cluster import KMeans
 
 #%%##########################################################################################
 
-def generateDF(filedir, colnames, patients, activities, slices):
+def generateDF(filedir,colnames,sensors,patients,activities,slices):
     # get the data from files for the selected patients
     # and selected activities
     # concatenate all the slices
     # generate a pandas dataframe with an added column: activity
-    x = pd.DataFrame()
+    x=pd.DataFrame()
     for pat in patients:
         for a in activities:
-            subdir = 'a'+f"{a:02d}"+'/p'+str(pat)+'/'
+            subdir='a'+f"{a:02d}"+'/p'+str(pat)+'/'
             for s in slices:
-                filename = filedir+subdir + 's' + f"{s:02d}" + '.txt'
-                x1 = pd.read_csv(filename, names=colnames)
-                x1['activity'] = a*np.ones((x1.shape[0],), dtype=int)
-                x = pd.concat([x, x1], axis=0, join='outer', ignore_index=True,
-                              keys=None, levels=None, names=None, verify_integrity=False,
-                              sort=False, copy=True)
+                filename=filedir+subdir+'s'+f"{s:02d}"+'.txt'
+                #print(filename)
+                x1=pd.read_csv(filename,usecols=sensors,names=colnames)
+                x1['activity']=a*np.ones((x1.shape[0],),dtype=int)
+                x=pd.concat([x,x1], axis=0, join='outer', ignore_index=True, 
+                            keys=None, levels=None, names=None, verify_integrity=False, 
+                            sort=False, copy=True)
     return x
 
 
@@ -60,7 +61,7 @@ def dist_eval(element, train):
     # Check same n. of features
     if element.shape[0] != train.shape[1]:
         raise ValueError(
-            'Error! The number of features of the element is not the same as the one of the training set!')
+            'Error! The number of features of the element is not the consistent!')
 
     distance_vect = np.empty((train.shape[0],))
 
@@ -264,9 +265,9 @@ plt.figure(figsize=(12, 6))
 for i in range(1, NAc + 1):         # Extract all activities
     activities = [i]
     try:
-        x = generateDF(filedir1, sensNamesSub, patients, activities, slices)
+        x = generateDF(filedir1, sensNamesSub, sensors_IDs, patients, activities, slices)
     except:
-        x = generateDF(filedir2, sensNamesSub, patients, activities, slices)
+        x = generateDF(filedir2, sensNamesSub, sensors_IDs, patients, activities, slices)
 
     x = x.drop(columns=['activity'])
 
@@ -371,9 +372,9 @@ start_centroids = np.zeros((n_clusters, n_features))
 
 for act in activities:
     try:
-        x_curr = generateDF(filedir1, sensNamesSub, patients, [act], slices_tr)
+        x_curr = generateDF(filedir1, sensNamesSub, sensors_IDs, patients, [act], slices_tr)
     except:
-        x_curr = generateDF(filedir2, sensNamesSub, patients, [act], slices_tr)
+        x_curr = generateDF(filedir2, sensNamesSub, sensors_IDs, patients, [act], slices_tr)
 
     labels_curr = x_curr.activity
 
@@ -398,7 +399,7 @@ X_tr = x_tr_df.drop(columns=['activity']).values
 y_tr = x_tr_df.activity.values
 
 # K-means
-k_means = KMeans(n_clusters=n_clusters, n_init=50, max_iter=500, tol=1e-6)
+k_means = KMeans(n_clusters=n_clusters, n_init=50, max_iter=500, tol=1e-8)
 k_means_fitted = k_means.fit(X_tr)
 
 print(k_means_fitted.labels_)
@@ -415,3 +416,14 @@ for i in range(n_clusters):
 
 print(mapping_ind)
 print(n_clusters)
+
+plt.figure()
+for i in range(n_clusters):
+    lines = plt.plot(k_means_fitted.cluster_centers_[i, :], label=str(mapping_ind[i]))
+    lines[0].set_color(cm(i//3*3/NAc))
+    lines[0].set_linestyle(line_styles[i % 3])
+plt.grid()
+plt.legend()
+plt.title('Centroids from K-means')
+plt.xticks(np.arange(x.shape[1]), list(x.columns), rotation=90)
+plt.show()
