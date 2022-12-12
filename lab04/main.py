@@ -279,6 +279,7 @@ for i in range(1, NAc + 1):         # Extract all activities
                      dbscan_eps=0.7, dbscan_M=6, takeVar=takevar_sens,
                      var_norm=True, var_thresh=1)  # (Nslices*125)x(n_sensors)
 
+    # Note indexing - centroid in position k corresponds to class k+1
     centroids[i-1, :] = x.mean().values
 
     plt.subplot(1, 2, 1)
@@ -403,7 +404,8 @@ y_tr = x_tr_df.activity.values
 k_means = KMeans(n_clusters=n_clusters, init=centroids, max_iter=1000, tol=1e-10)
 k_means_fitted = k_means.fit(X_tr)
 
-print(k_means_fitted.labels_)
+# Classes id's are between 1 and 19 (not 0 and 18)
+print(k_means_fitted.labels_ + 1)
 
 # Associate to each label the correct activity
 mapping_ind = np.zeros((n_clusters,), dtype=np.int8)
@@ -424,11 +426,11 @@ mapping_ind = np.zeros((n_clusters,), dtype=np.int8)
 for i in range(n_clusters):
     centr_curr = k_means_fitted.cluster_centers_[i, :]
     dist_cent = dist_eval(centr_curr, centroids)
-    mapping_ind[i] = np.argmin(dist_cent)
+    mapping_ind[i] = np.argmin(dist_cent)+1
     
     plt.figure()
     plt.plot(centr_curr, label="centroid "+str(i))
-    plt.plot(centroids[mapping_ind[i], :], ":", label="closest element")
+    plt.plot(centroids[mapping_ind[i]-1, :], ":", label="closest element")
     plt.grid()
     plt.legend()
     plt.title("Class "+str(mapping_ind[i]))
