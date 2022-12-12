@@ -334,7 +334,7 @@ dd = d+np.eye(NAc)*1e6
 
 dmin = dd.min(axis=0)         # Find the minimum distance for each centroid
 
-# Average distance between each centroid and all others
+# Average distance between each centroid and its points 
 dpoints = np.sqrt(np.sum(stdpoints**2, axis=1))
 
 plt.figure()
