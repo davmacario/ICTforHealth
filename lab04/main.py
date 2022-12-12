@@ -379,7 +379,8 @@ for act in activities:
     labels_curr = x_curr.activity
 
     x_curr = x_curr.drop(columns=['activity'])
-    # Preprocess (same parameters as before) - notice that the
+    # Preprocess (same parameters as before) - need to pass elements 
+    # without class, else the label is modified (processed...)
     x_curr = preprocessor(x_curr, drop_feat=tbr_sens, us_factor=25, dbscan=True,
                           dbscan_eps=0.7, dbscan_M=6, var_norm=True)  # (Nslices*125)x(n_sensors)
 
@@ -392,30 +393,48 @@ for act in activities:
     else:
         x_tr_df = pd.concat([x_tr_df, x_curr])
 
-    start_centroids[i, :] = x_curr.drop(
-        columns=['activity']).values[0, :].copy()
+    start_centroids[act-1, :] = x_curr.drop(
+        columns=['activity']).mean().values.copy()
 
 X_tr = x_tr_df.drop(columns=['activity']).values
 y_tr = x_tr_df.activity.values
 
-# K-means
-k_means = KMeans(n_clusters=n_clusters, n_init=50, max_iter=500, tol=1e-8)
+# K-means - initialize centroids as 
+k_means = KMeans(n_clusters=n_clusters, init=centroids, max_iter=1000, tol=1e-10)
 k_means_fitted = k_means.fit(X_tr)
 
 print(k_means_fitted.labels_)
 
 # Associate to each label the correct activity
-mapping_ind = np.zeros((n_clusters,))
+mapping_ind = np.zeros((n_clusters,), dtype=np.int8)
+# Approach (1): each centrodi corresponds to the class of 
+# the closest element in the training set
+
+# for i in range(n_clusters):
+#     centr_curr = k_means_fitted.cluster_centers_[i, :]
+#     # Find closest element in tr. set
+#     dist_tr = dist_eval(centr_curr, X_tr)
+#     closest = np.argsort(dist_tr, axis=0)[0]
+
+#     mapping_ind[i] = y_tr[closest]
+
+# Approach (2): each centroid corresponds to the class of the 
+# closest 'centroid' found before as the mean 
+# (IT WORKS! - Notice: average centroids were also used to initialize K-means centroids)
 for i in range(n_clusters):
     centr_curr = k_means_fitted.cluster_centers_[i, :]
-    # Find closest element in tr. set
-    dist_tr = dist_eval(centr_curr, X_tr)
-    closest = np.argsort(dist_tr, axis=0)[0]
-
-    mapping_ind[i] = y_tr[closest]
+    dist_cent = dist_eval(centr_curr, centroids)
+    mapping_ind[i] = np.argmin(dist_cent)
+    
+    plt.figure()
+    plt.plot(centr_curr, label="centroid "+str(i))
+    plt.plot(centroids[mapping_ind[i], :], ":", label="closest element")
+    plt.grid()
+    plt.legend()
+    plt.title("Class "+str(mapping_ind[i]))
 
 print(mapping_ind)
-print(n_clusters)
+plt.show()
 
 plt.figure()
 for i in range(n_clusters):
