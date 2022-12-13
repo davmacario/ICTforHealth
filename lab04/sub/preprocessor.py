@@ -3,11 +3,44 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.cluster as sk
 
+def generateDF(filedir, colnames, sensors, patients, activities, slices):
+    """
+    generateDF
+    --------------------------------------------------------------
+    Get the data from files for the selected patients and selected
+    activities.
+    Then concatenate all the slices and generate a pandas 
+    dataframe with an added column: activity 
+    --------------------------------------------------------------
+    Parameters:
+    - filedir: (string) path of the file
+    - colnames: (list of strings) selected columns to be extracted
+      (corresponding to the used sensors)
+    - sensors: (list of ints) ID of the sensors in 'colnames'
+    - patients: (list of ints) list of considered patients
+    - activities: (list of ints) list of considered activities 
+      (IDs)
+    - slices: (list of ints) list of considered slices (IDs)
+    --------------------------------------------------------------
+    """
+    x=pd.DataFrame()
+    for pat in patients:
+        for a in activities:
+            subdir='a'+f"{a:02d}"+'/p'+str(pat)+'/'
+            for s in slices:
+                filename=filedir+subdir+'s'+f"{s:02d}"+'.txt'
+                #print(filename)
+                x1=pd.read_csv(filename,usecols=sensors,names=colnames)
+                x1['activity']=a*np.ones((x1.shape[0],),dtype=int)
+                x=pd.concat([x,x1], axis=0, join='outer', ignore_index=True, 
+                            keys=None, levels=None, names=None, verify_integrity=False, 
+                            sort=False, copy=True)
+    return x
 
 def preprocessor(df, drop_feat=[], us_factor=1, takeVar=[], dbscan=False, dbscan_eps=1, dbscan_M=5, msv_list=[[]], var_norm=False, var_thresh=1):
     """
     preprocessor
-    ---
+    --------------------------------------------------------------
     Apply a preprocessing pipeline to an input dataframe.
 
     Possible preprocessing strategies:
@@ -16,20 +49,23 @@ def preprocessor(df, drop_feat=[], us_factor=1, takeVar=[], dbscan=False, dbscan
         - When downsampling, replace feature with variance
     - Mean squared value of x, y, z of each measure
     - Normalize variance of selected features
-    ---
+    --------------------------------------------------------------
     Input parameters:
     - df: input dataframe
     - drop_feat: list of features of the dataframe to be dropped
     - us_factor: undersampling factor
-    - takeVar: flag for substituting average feature with variance (WHAT IF VAR = 0?)
+    - takeVar: flag for substituting average feature with 
+      variance (WHAT IF VAR = 0?)
     - dbscan: flag for performing dbscan
     - dbscan_eps: hypersphere radius of DBSCAN
     - dbscan_M: number of neighbors dbscan
-    - msv_list = list of lists including the features to be replaced with their mean 
-      square value (after undersampling)
+    - msv_list = list of lists including the features to be 
+      replaced with their mean square value (after undersampling)
 
     - var_norm: flag for performing variance normalization
-    - var_eps: value of the variance above which normalization is performed
+    - var_eps: value of the variance above which normalization is 
+      performed
+    --------------------------------------------------------------
     """
 
     df_start = df.copy()
@@ -105,3 +141,77 @@ def preprocessor(df, drop_feat=[], us_factor=1, takeVar=[], dbscan=False, dbscan
     ######
 
     return df_proc
+
+#
+#
+#
+#
+def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_names, sensors_tbr_names, sensors_tba, ID='train'):
+    """
+    buildDataSet
+    ---------------------------------------------------------
+    Returns the dataframe containing the features and the 
+    column containing the corresponding label.
+    ---------------------------------------------------------
+    Parameters:
+    - activities: array of activity IDs
+    - slices: array of slice IDs
+    - all_sensors: list of sensors IDs to be read
+    - all_sensor_names: list of sensor names to be read
+    - sensors_tbr_names: names of sensors to be removed at 
+      preprocessing
+    - sensors_tba: sensors that need to be averaged at 
+      preprocessing (to be removed since no averaging)
+    ---------------------------------------------------------
+    """
+    
+    if ID == 'train':
+        dbscan = True
+        var_norm = True
+    else:
+        dbscan = False
+        var_norm = False
+
+
+    n_clusters = len(activities)
+    n_sensors_tot = len(all_sensors)
+
+    filedir2 = './lab04/' + str(filedir)
+    
+    created = False
+    n_features = n_sensors_tot - len(sensors_tbr_names)
+    start_centroids = np.zeros((n_clusters, n_features))
+
+    ## Open one activity at a time to allow for individual preprocessing of all classes
+    # This way we can also obtain starting centroids for k-means as the average element 
+    # of each class
+    for act in activities:
+        try:
+            x_curr = generateDF(filedir, all_sensors_names, all_sensors, patient, [act], slices)
+        except:
+            x_curr = generateDF(filedir2, all_sensors_names, all_sensors, patient, [act], slices)
+
+        labels_curr = x_curr.activity
+
+        x_curr = x_curr.drop(columns=['activity'])
+        # Preprocess (same parameters as before) - need to pass elements 
+        # without class, else the label is modified (processed...)
+        x_curr = preprocessor(x_curr, drop_feat=sensors_tbr_names, us_factor=25, dbscan=dbscan,
+                            dbscan_eps=0.7, dbscan_M=6, var_norm=var_norm)  # (Nslices*125)x(n_sensors)
+
+        # Centroid i corresponds to class i+1
+        start_centroids[act-1, :] = x_curr.mean().values
+
+        # Replace labels
+        x_curr['activity'] = labels_curr[0]
+
+        if not created:
+            x_tr_df = x_curr.copy()
+            created = True
+        else:
+            x_tr_df = pd.concat([x_tr_df, x_curr])
+
+    X_created = x_tr_df.drop(columns=['activity']).values
+    y_created = x_tr_df.activity.values
+
+    return X_created, y_created, start_centroids

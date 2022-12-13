@@ -1,13 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from sub.preprocessor import preprocessor
+from sub.preprocessor import generateDF, preprocessor, buildDataSet
 from sklearn.cluster import KMeans
+from sub.evaluators import evalAccuracy
 
 """ 
-- TODO[4]: Look for better results than in slide 26 (add normalization - only )
-- TODO[5]: Separate processed data in training and test sets and apply sklearn 
-- TODO[6]: Find mapping between cluster and activity to check results
 - TODO[7]: Plot confusion matrix for both training and test sets
 - TODO[8]: Find accuracy for both sets (uniform prior)
 - TODO[9]: Improve system for accuracy ~= 85%-90%
@@ -29,24 +27,7 @@ from sklearn.cluster import KMeans
 
 #%%##########################################################################################
 
-def generateDF(filedir,colnames,sensors,patients,activities,slices):
-    # get the data from files for the selected patients
-    # and selected activities
-    # concatenate all the slices
-    # generate a pandas dataframe with an added column: activity
-    x=pd.DataFrame()
-    for pat in patients:
-        for a in activities:
-            subdir='a'+f"{a:02d}"+'/p'+str(pat)+'/'
-            for s in slices:
-                filename=filedir+subdir+'s'+f"{s:02d}"+'.txt'
-                #print(filename)
-                x1=pd.read_csv(filename,usecols=sensors,names=colnames)
-                x1['activity']=a*np.ones((x1.shape[0],),dtype=int)
-                x=pd.concat([x,x1], axis=0, join='outer', ignore_index=True, 
-                            keys=None, levels=None, names=None, verify_integrity=False, 
-                            sort=False, copy=True)
-    return x
+
 
 
 def dist_eval(element, train):
@@ -78,8 +59,8 @@ plt.close('all')
 cm = plt.get_cmap('gist_rainbow')
 line_styles = ['solid', 'dashed', 'dotted']
 
-filedir1 = './data/'
-filedir2 = './lab04/data/'
+filedir1 = 'data/'
+filedir2 = 'lab04/data/'
 
 sensNames = [
     'T_xacc', 'T_yacc', 'T_zacc',
@@ -249,7 +230,7 @@ takevar_sens = [sensNames[i] for i in takevar_ind]
 ######################################################################
 
 used_sensors = [elem for elem in sensors_IDs if elem not in tbr_ind]
-used_sensorNames = [elem for elem in sensNamesSub]
+used_sensorNames = [sensNames[i] for i in used_sensors]
 
 print('Number of used sensors: ', len(used_sensors))
 
@@ -355,50 +336,20 @@ plt.show()
 
 #%%################# Classification #################################
 
+### TODO: Insert here variables used (lists of names/slices/...)
+
 n_slices_tr = 12
 n_slices_te = Ntot - n_slices_tr
 
 slices_tr = list(range(1, n_slices_tr+1))
-slices_te = list(range(n_slices_tr+1, Ntot+2))
+slices_te = list(range(n_slices_tr+1, Ntot+1))
 
 # Consider all activities
 activities = list(range(1, NAc + 1))
 
 n_clusters = len(activities)
 
-# Building training set
-created = False
-n_features = n_sensors_tot - len(tbr_ind)
-start_centroids = np.zeros((n_clusters, n_features))
-
-for act in activities:
-    try:
-        x_curr = generateDF(filedir1, sensNamesSub, sensors_IDs, patients, [act], slices_tr)
-    except:
-        x_curr = generateDF(filedir2, sensNamesSub, sensors_IDs, patients, [act], slices_tr)
-
-    labels_curr = x_curr.activity
-
-    x_curr = x_curr.drop(columns=['activity'])
-    # Preprocess (same parameters as before) - need to pass elements 
-    # without class, else the label is modified (processed...)
-    x_curr = preprocessor(x_curr, drop_feat=tbr_sens, us_factor=25, dbscan=True,
-                          dbscan_eps=0.7, dbscan_M=6, var_norm=True)  # (Nslices*125)x(n_sensors)
-
-    # Replace labels
-    x_curr['activity'] = labels_curr[0]
-
-    if not created:
-        x_tr_df = x_curr.copy()
-        created = True
-    else:
-        x_tr_df = pd.concat([x_tr_df, x_curr])
-
-    start_centroids[act-1, :] = x_curr.drop(
-        columns=['activity']).mean().values.copy()
-
-X_tr = x_tr_df.drop(columns=['activity']).values
-y_tr = x_tr_df.activity.values
+X_tr, y_tr, start_centroids = buildDataSet(filedir1, patients, activities, slices_tr, sensors_IDs, sensNamesSub, tbr_sens, tba_ind, ID='train')
 
 # K-means - initialize centroids as 
 k_means = KMeans(n_clusters=n_clusters, init=centroids, max_iter=1000, tol=1e-10)
@@ -409,16 +360,6 @@ print(k_means_fitted.labels_ + 1)
 
 # Associate to each label the correct activity
 mapping_ind = np.zeros((n_clusters,), dtype=np.int8)
-# Approach (1): each centrodi corresponds to the class of 
-# the closest element in the training set
-
-# for i in range(n_clusters):
-#     centr_curr = k_means_fitted.cluster_centers_[i, :]
-#     # Find closest element in tr. set
-#     dist_tr = dist_eval(centr_curr, X_tr)
-#     closest = np.argsort(dist_tr, axis=0)[0]
-
-#     mapping_ind[i] = y_tr[closest]
 
 # Approach (2): each centroid corresponds to the class of the 
 # closest 'centroid' found before as the mean 
@@ -448,3 +389,13 @@ plt.legend()
 plt.title('Centroids from K-means')
 plt.xticks(np.arange(x.shape[1]), list(x.columns), rotation=90)
 plt.show()
+
+X_te, y_te = buildDataSet(filedir1, patients, activities, slices_te, sensors_IDs, sensNamesSub, tbr_sens, tba_ind, ID='test')[:2]
+
+y_hat_te = k_means.predict(X_te)
+
+# Accuracy
+acc_kmeans = evalAccuracy(y_hat_te+1, y_te)
+#### Notice: the label saved in y_hat_te goes from 0 to 18, not from 1 to 19
+
+print(f"Accuracy (test): {acc_kmeans}")
