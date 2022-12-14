@@ -3,6 +3,74 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.cluster as sk
 
+
+
+sensNames = [
+    'T_xacc', 'T_yacc', 'T_zacc',
+    'T_xgyro', 'T_ygyro', 'T_zgyro',
+    'T_xmag', 'T_ymag', 'T_zmag',
+    'RA_xacc', 'RA_yacc', 'RA_zacc',
+    'RA_xgyro', 'RA_ygyro', 'RA_zgyro',
+    'RA_xmag', 'RA_ymag', 'RA_zmag',
+    'LA_xacc', 'LA_yacc', 'LA_zacc',
+    'LA_xgyro', 'LA_ygyro', 'LA_zgyro',
+    'LA_xmag', 'LA_ymag', 'LA_zmag',
+    'RL_xacc', 'RL_yacc', 'RL_zacc',
+    'RL_xgyro', 'RL_ygyro', 'RL_zgyro',
+    'RL_xmag', 'RL_ymag', 'RL_zmag',
+    'LL_xacc', 'LL_yacc', 'LL_zacc',
+    'LL_xgyro', 'LL_ygyro', 'LL_zgyro',
+    'LL_xmag', 'LL_ymag', 'LL_zmag']
+
+actNames = [
+    'sitting',  # 1
+    'standing',  # 2
+    'lying on back',  # 3
+    'lying on right side',  # 4
+    'ascending stairs',  # 5
+    'descending stairs',  # 6
+    'standing in an elevator still',  # 7
+    'moving around in an elevator',  # 8
+    'walking in a parking lot',  # 9
+    'walking on a treadmill with a speed of 4 km/h in flat',  # 10
+    'walking on a treadmill with a speed of 4 km/h in 15 deg inclined position',  # 11
+    'running on a treadmill with a speed of 8 km/h',  # 12
+    'exercising on a stepper',  # 13
+    'exercising on a cross trainer',  # 14
+    'cycling on an exercise bike in horizontal positions',  # 15
+    'cycling on an exercise bike in vertical positions',  # 16
+    'rowing',  # 17
+    'jumping',  # 18
+    'playing basketball'  # 19
+]
+
+actNamesShort = [
+    'sitting',  # 1
+    'standing',  # 2
+    'lying.ba',  # 3
+    'lying.ri',  # 4
+    'asc.sta',  # 5
+    'desc.sta',  # 6
+    'stand.elev',  # 7
+    'mov.elev',  # 8
+    'walk.park',  # 9
+    'walk.4.fl',  # 10
+    'walk.4.15',  # 11
+    'run.8',  # 12
+    'exer.step',  # 13
+    'exer.train',  # 14
+    'cycl.hor',  # 15
+    'cycl.ver',  # 16
+    'rowing',  # 17
+    'jumping',  # 18
+    'play.bb'  # 19
+]
+
+cm = plt.get_cmap('gist_rainbow')
+line_styles = ['solid', 'dashed', 'dotted']
+
+
+
 def generateDF(filedir, colnames, sensors, patients, activities, slices):
     """
     generateDF
@@ -146,7 +214,8 @@ def preprocessor(df, drop_feat=[], us_factor=1, takeVar=[], dbscan=False, dbscan
 #
 #
 #
-def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_names, sensors_tbr_names, sensors_tba, ID='train'):
+def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_names, sensors_tbr_names, sensors_tba, ID='train', plots=True):
+    # TODO: add plots (flags) + save them
     """
     buildDataSet
     ---------------------------------------------------------
@@ -172,7 +241,6 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
         dbscan = False
         var_norm = False
 
-
     n_clusters = len(activities)
     n_sensors_tot = len(all_sensors)
 
@@ -180,7 +248,12 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
     
     created = False
     n_features = n_sensors_tot - len(sensors_tbr_names)
+
     start_centroids = np.zeros((n_clusters, n_features))
+    stdpoints = np.zeros((n_clusters, n_features))
+
+    if plots:
+        plt.figure(figsize=(12, 6))
 
     ## Open one activity at a time to allow for individual preprocessing of all classes
     # This way we can also obtain starting centroids for k-means as the average element 
@@ -196,11 +269,14 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
         x_curr = x_curr.drop(columns=['activity'])
         # Preprocess (same parameters as before) - need to pass elements 
         # without class, else the label is modified (processed...)
-        x_curr = preprocessor(x_curr, drop_feat=sensors_tbr_names, us_factor=25, dbscan=dbscan,
-                            dbscan_eps=0.7, dbscan_M=6, var_norm=var_norm)  # (Nslices*125)x(n_sensors)
+        x_curr = preprocessor(x_curr, drop_feat=sensors_tbr_names, us_factor=50, dbscan=dbscan,
+                            dbscan_eps=1.2, dbscan_M=6, var_norm=var_norm)  # (Nslices*125)x(n_sensors)
 
         # Centroid i corresponds to class i+1
         start_centroids[act-1, :] = x_curr.mean().values
+
+        # Standard deviation
+        stdpoints[act-1] = np.sqrt(x_curr.var().values)
 
         # Replace labels
         x_curr['activity'] = labels_curr[0]
@@ -211,7 +287,34 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
         else:
             x_tr_df = pd.concat([x_tr_df, x_curr])
 
+        if plots:
+            plt.subplot(1, 2, 1)
+            lines = plt.plot(start_centroids[act-1, :], label=actNamesShort[act-1])
+            lines[0].set_color(cm(act//3*3/n_clusters))
+            lines[0].set_linestyle(line_styles[act % 3])
+
+            plt.subplot(1, 2, 2)
+            lines = plt.plot(stdpoints[act-1, :], label=actNamesShort[act-1])
+            lines[0].set_color(cm(act//3*3/n_clusters))
+            lines[0].set_linestyle(line_styles[act % 3])
+    
+    if plots:
+        plt.subplot(1, 2, 1)
+        plt.legend(loc='upper right')
+        plt.grid()
+        plt.title('Centroids using '+str(n_sensors_tot)+' sensors')
+        plt.xticks(np.arange(x_curr.shape[1]), list(x_curr.columns), rotation=90)
+
+        plt.subplot(1, 2, 2)
+        plt.legend(loc='upper right')
+        plt.grid()
+        plt.title('Standard deviation using '+str(n_sensors_tot)+' sensors')
+        plt.xticks(np.arange(x_curr.shape[1]), list(x_curr.columns), rotation=90)
+
+        plt.tight_layout()
+        plt.show()
+
     X_created = x_tr_df.drop(columns=['activity']).values
     y_created = x_tr_df.activity.values
 
-    return X_created, y_created, start_centroids
+    return X_created, y_created, start_centroids, stdpoints
