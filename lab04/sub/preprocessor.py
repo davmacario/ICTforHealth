@@ -105,14 +105,13 @@ def generateDF(filedir, colnames, sensors, patients, activities, slices):
                             sort=False, copy=True)
     return x
 
-def preprocessor(df, drop_feat=[], us_factor=1, takeVar=[], dbscan=False, dbscan_eps=1, dbscan_M=5, msv_list=[[]], var_norm=False, var_thresh=1):
+def preprocessor(df, us_factor=1, takeVar=[], dbscan=False, dbscan_eps=1, dbscan_M=5, msv_list=[[]], var_norm=False, var_thresh=1):
     """
     preprocessor
     --------------------------------------------------------------
     Apply a preprocessing pipeline to an input dataframe.
 
     Possible preprocessing strategies:
-    - Drop features
     - Undersampling
         - When downsampling, replace feature with variance
     - Mean squared value of x, y, z of each measure
@@ -120,7 +119,6 @@ def preprocessor(df, drop_feat=[], us_factor=1, takeVar=[], dbscan=False, dbscan
     --------------------------------------------------------------
     Input parameters:
     - df: input dataframe
-    - drop_feat: list of features of the dataframe to be dropped
     - us_factor: undersampling factor
     - takeVar: flag for substituting average feature with 
       variance (WHAT IF VAR = 0?)
@@ -138,9 +136,6 @@ def preprocessor(df, drop_feat=[], us_factor=1, takeVar=[], dbscan=False, dbscan
 
     df_start = df.copy()
     n_p, n_f = df.shape
-
-    # Drop features
-    df_start = df_start.drop(columns=drop_feat)
 
     feat_list = df_start.columns
 
@@ -210,11 +205,32 @@ def preprocessor(df, drop_feat=[], us_factor=1, takeVar=[], dbscan=False, dbscan
 
     return df_proc
 
+def dist_eval(element, train):
+    """
+    dist_eval: evaluate the distance (euclidean sense) between the test element
+    and each one of the elements of the training set
+    ------------------------------------------------------------------------------
+    - element: item whose distance needs to be computed
+    - train: training set; each row is an element and the columns are the features
+    ------------------------------------------------------------------------------
+    """
+    # Check same n. of features
+    if element.shape[0] != train.shape[1]:
+        raise ValueError(
+            'Error! The number of features of the element is not the consistent!')
+
+    distance_vect = np.empty((train.shape[0],))
+
+    for ind2 in range(train.shape[0]):
+        tmp_sum = sum(np.power(element - train[ind2, :], 2))
+        distance_vect[ind2] = np.sqrt(tmp_sum)
+
+    return distance_vect
 #
 #
 #
 #
-def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_names, sensors_tbr_names, sensors_tba, ID='train', plots=True):
+def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_names, sensors_tba, ID='train', plots=True):
     # TODO: add plots (flags) + save them
     """
     buildDataSet
@@ -247,7 +263,15 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
     filedir2 = './lab04/' + str(filedir)
     
     created = False
-    n_features = n_sensors_tot - len(sensors_tbr_names)
+    # Count elements inside 'tba'
+    len_tba = 0
+    n_lst_tba = 0
+    for lst in sensors_tba:
+        if len(lst) > 0:
+            n_lst_tba += 1
+        len_tba += len(lst)
+
+    n_features = n_sensors_tot - len_tba + n_lst_tba
 
     start_centroids = np.zeros((n_clusters, n_features))
     stdpoints = np.zeros((n_clusters, n_features))
@@ -269,7 +293,7 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
         x_curr = x_curr.drop(columns=['activity'])
         # Preprocess (same parameters as before) - need to pass elements 
         # without class, else the label is modified (processed...)
-        x_curr = preprocessor(x_curr, drop_feat=sensors_tbr_names, us_factor=50, dbscan=dbscan,
+        x_curr = preprocessor(x_curr, us_factor=50, dbscan=dbscan,
                             dbscan_eps=1.2, dbscan_M=6, var_norm=var_norm)  # (Nslices*125)x(n_sensors)
 
         # Centroid i corresponds to class i+1
