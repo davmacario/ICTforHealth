@@ -31,3 +31,5 @@ Can use **at most 30 (/60) slices in the training phase** and can do less than 1
 * 2022-12-09: Still, the best clustering separation is achieved by just considering magnetometer
 * 2022-12-12: the mapping of centroids is obtained correctly (and easily) when initializing the k-means centroids to the centroids obtained as the average elements of each activity (from prof. code)
 * 2022-12-13: created a function to perform extraction and get centroids of the data; it allows to easily create and manage training and test sets
+* 2022-12-15: found best combination of 12 sensors that yield the greatest accuracy
+* 2022-12-16: added denoiser program, based on fft

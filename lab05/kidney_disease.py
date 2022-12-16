@@ -49,6 +49,7 @@ mapping = {
 
 xx = xx.replace(mapping.keys(), mapping.values())
 
+# Alternatively:
 # key_list=["normal","abnormal","present","notpresent","yes",
 # "no","poor","good","ckd","notckd","ckd\t","\tno"," yes","\tyes"]
 # key_val=[0,1,0,1,0,1,0,1,1,0,1,1,0,0]
@@ -154,5 +155,6 @@ if plotCDF:
         plt.grid()
         plt.legend(loc='upper left')
     plt.show()
+
 # %%------------------ Decision tree -------------------
 # add here the missing lines

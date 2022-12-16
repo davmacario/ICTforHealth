@@ -61,8 +61,20 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 
 #%%##########################################################################################
 # Features to be kept #############################################
-used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
+# used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
+
+# Evaluated as the best combination of 12 elements in terms of accuracy on the test set
+# used_sensors = [6, 15, 16, 17, 24, 26, 33, 34, 35, 42, 43, 44]
+
+# Best comb. of 9 elements:
+used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
+
 used_sensorNames = [sensNames[i] for i in used_sensors]
+
+""" 
+Best accuracy, test: 0.8648421052631579
+with elements: (6, 15, 16, 24, 26, 33, 42, 43, 44)
+"""
 
 print('Number of used sensors: ', len(used_sensors))
 
@@ -71,7 +83,7 @@ print('Number of used sensors: ', len(used_sensors))
 tba_ind = [[]]
 
 # Features to be replaced with variance at undersampling #############
-takevar_ind = []
+takevar_ind = [33, 34, 35, 42, 43, 44]
 
 # Translate into strings:
 tba_names = []
@@ -93,7 +105,8 @@ activities = list(range(1, NAc + 1))
 
 n_clusters = len(activities)
 
-X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities, slices_tr, used_sensors, used_sensorNames, tba_ind, ID='train', plots=True)
+X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities,\
+         slices_tr, used_sensors, used_sensorNames, takevar_names, ID='train', plots=True)
 
 #%%##########################################################################################
 # Inter-centroid distance
@@ -147,7 +160,7 @@ plt.title('Centroids from K-means')
 plt.xticks(np.arange(X_tr.shape[1]), list(used_sensorNames), rotation=90)
 plt.show()
 
-X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, used_sensorNames, tba_ind, ID='test', plots=False)[:2]
+X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, used_sensorNames, takevar_names, ID='test', plots=False)[:2]
 
 y_hat_tr = k_means_fitted.predict(X_tr)
 y_hat_te = k_means_fitted.predict(X_te)

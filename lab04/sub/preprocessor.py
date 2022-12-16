@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.cluster as sk
 
+from scipy import signal
+
 
 
 sensNames = [
@@ -105,7 +107,8 @@ def generateDF(filedir, colnames, sensors, patients, activities, slices):
                             sort=False, copy=True)
     return x
 
-def preprocessor(df, us_factor=1, takeVar=[], dbscan=False, dbscan_eps=1, dbscan_M=5, msv_list=[[]], var_norm=False, var_thresh=1):
+def preprocessor(df, us_factor=1, takeVar=[], lp=False, fs=25, lp_freq=10, \
+    dbscan=False, dbscan_eps=1, dbscan_M=5, msv_list=[[]], var_norm=False, var_thresh=1):
     """
     preprocessor
     --------------------------------------------------------------
@@ -121,15 +124,17 @@ def preprocessor(df, us_factor=1, takeVar=[], dbscan=False, dbscan_eps=1, dbscan
     - df: input dataframe
     - us_factor: undersampling factor
     - takeVar: flag for substituting average feature with 
-      variance (WHAT IF VAR = 0?)
+      variance (also if variance = 0)
+    - lp: flag for using a low-pass filter (Butterworth 2nd order)
+    - fs: sampling frequency of the signal
+    - lp_freq: cutoff frequency of the lpf
     - dbscan: flag for performing dbscan
     - dbscan_eps: hypersphere radius of DBSCAN
     - dbscan_M: number of neighbors dbscan
     - msv_list = list of lists including the features to be 
       replaced with their mean square value (after undersampling)
-
     - var_norm: flag for performing variance normalization
-    - var_eps: value of the variance above which normalization is 
+    - var_thresh: value of the variance above which normalization is 
       performed
     --------------------------------------------------------------
     """
@@ -158,11 +163,12 @@ def preprocessor(df, us_factor=1, takeVar=[], dbscan=False, dbscan_eps=1, dbscan
 
         # Replace the specified feature with the variance measured over the current subset
         for feat in takeVar:
-            var_curr = current_subset[feat].var(axis=0)
-            rows_avg = rows_avg.drop(labels=[feat])
-            newname = 'var_'+str(feat)
-            # newname = str(feat)
-            rows_avg[newname] = var_curr
+            if us_factor > 1:
+                var_curr = current_subset[feat].var(axis=0)
+                rows_avg = rows_avg.drop(labels=[feat])
+                newname = 'var_'+str(feat)
+                # newname = str(feat)
+                rows_avg[newname] = var_curr
 
         # Place the created feature at the end of the data matrix
         feat_list = rows_avg.index
@@ -170,13 +176,19 @@ def preprocessor(df, us_factor=1, takeVar=[], dbscan=False, dbscan_eps=1, dbscan
 
     n_p_processed = processed_mat.shape[0]
 
+    # LPF:
+    if lp:
+        for i in range(n_p_processed):
+            # Notice - the sampling frequency is like if it was reduced when averaging (undersampling)
+            processed_mat[i, :] = np.copy(custom_filter(processed_mat[i, :], fs/us_factor, lp_freq/us_factor))
+
     # DBSCAN
     if dbscan:
         clustering = sk.DBSCAN(
             eps=dbscan_eps, min_samples=dbscan_M).fit(processed_mat)
         ind_outlier = np.argwhere(clustering.labels_ == -1)[:, 0]
         n_removed = len(ind_outlier)
-        print(f"DBSCAN found {n_removed} outliers")
+        # print(f"DBSCAN found {n_removed} outliers")
         processed_mat = np.delete(processed_mat, ind_outlier, 0)
         n_p_processed = processed_mat.shape[0]
 
@@ -205,6 +217,47 @@ def preprocessor(df, us_factor=1, takeVar=[], dbscan=False, dbscan_eps=1, dbscan
 
     return df_proc
 
+
+def denoiser(x, cutoff):
+    """
+    denoiser
+    ----------------------------------------------------
+    fft-based simple low-pass filter
+    ----------------------------------------------------
+    """
+    n_elem = len(x)
+    
+    x_fft = np.fft.fft(x, n_elem)
+
+    PSD = x_fft*np.conj(x_fft)/n_elem
+
+    _mask = PSD > cutoff
+    x_fft_filt = x_fft * _mask
+
+    x_filt = np.fft.ifft(x_fft_filt).real
+
+    return x_filt
+
+def custom_filter(x, fs, cutoff):
+    """
+    custom_filter
+    ----------------------------------------------------
+    applies the Butterworth filter of order 2
+    ----------------------------------------------------
+    - x: signal
+    - fs: sampling frequency
+    - cutoff: cutoff frequency (or tuple if bp)
+    """
+
+    f_ny = fs/2
+
+    b, a = signal.butter(2, cutoff, btype='lowpass', fs=fs)
+
+    x_filt = np.array(signal.filtfilt(b, a, x))
+
+    return x_filt
+
+
 def dist_eval(element, train):
     """
     dist_eval: evaluate the distance (euclidean sense) between the test element
@@ -230,7 +283,7 @@ def dist_eval(element, train):
 #
 #
 #
-def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_names, sensors_tba, ID='train', plots=True):
+def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_names, sensors_var, ID='train', plots=True):
     # TODO: add plots (flags) + save them
     """
     buildDataSet
@@ -239,14 +292,19 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
     column containing the corresponding label.
     ---------------------------------------------------------
     Parameters:
+    - filedir: difectory of the input files
+    - patient: considered patient
+    - slices: considered slices (list of int)
     - activities: array of activity IDs
     - slices: array of slice IDs
     - all_sensors: list of sensors IDs to be read
     - all_sensor_names: list of sensor names to be read
-    - sensors_tbr_names: names of sensors to be removed at 
-      preprocessing
-    - sensors_tba: sensors that need to be averaged at 
-      preprocessing (to be removed since no averaging)
+    - sensors_var: sensors whose measurements will be 
+      substituted with their variance
+    - ID: determines whether this Data Set is a training set 
+      of test set to prevent forbidden operations on the test
+      set
+    - plots: flag for plotting figures
     ---------------------------------------------------------
     """
     
@@ -263,15 +321,8 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
     filedir2 = './lab04/' + str(filedir)
     
     created = False
-    # Count elements inside 'tba'
-    len_tba = 0
-    n_lst_tba = 0
-    for lst in sensors_tba:
-        if len(lst) > 0:
-            n_lst_tba += 1
-        len_tba += len(lst)
-
-    n_features = n_sensors_tot - len_tba + n_lst_tba
+    
+    n_features = n_sensors_tot
 
     start_centroids = np.zeros((n_clusters, n_features))
     stdpoints = np.zeros((n_clusters, n_features))
@@ -293,7 +344,7 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
         x_curr = x_curr.drop(columns=['activity'])
         # Preprocess (same parameters as before) - need to pass elements 
         # without class, else the label is modified (processed...)
-        x_curr = preprocessor(x_curr, us_factor=50, dbscan=dbscan,
+        x_curr = preprocessor(x_curr, us_factor=50, lp=False, fs=25, lp_freq=12, dbscan=dbscan,
                             dbscan_eps=1.2, dbscan_M=6, var_norm=var_norm)  # (Nslices*125)x(n_sensors)
 
         # Centroid i corresponds to class i+1
