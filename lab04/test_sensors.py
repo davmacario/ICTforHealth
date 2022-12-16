@@ -174,6 +174,7 @@ sensors_combinations = list()
 
 for n in [9]:
     sensors_combinations += list(it.combinations([6, 15, 16, 17, 24, 26, 33, 34, 35, 42, 43, 44], n))
+    #sensors_combinations += list(it.combinations(sensors_IDs, n))
 
 # Acc_te to beat: 0.8551578947368421
 
