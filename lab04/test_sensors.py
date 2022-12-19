@@ -34,18 +34,8 @@ def tries_loop(sens_comb):
 
         print('Number of used sensors: ', len(used_sensors))
 
-        # Features to be averaged - MSV ######################################
-        # (must be included in the used_sensors list)
-        tba_ind = [[]]
-
         # Features to be replaced with variance at undersampling #############
         takevar_ind = []
-
-        # Translate into strings:
-        tba_names = []
-        if (len(tba_ind[0]) > 0):  # !!! tba_ind = [[]] has length 1...
-            for i in range(len(tba_ind)):
-                tba_names.append([sensNames[j] for j in tba_ind[i]])
 
         takevar_names = [sensNames[i] for i in takevar_ind]
 
@@ -61,7 +51,7 @@ def tries_loop(sens_comb):
 
         n_clusters = len(activities)
 
-        X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities, slices_tr, used_sensors, used_sensorNames, tba_ind, ID='train', plots=False)
+        X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities, slices_tr, used_sensors, used_sensorNames, takevar_ind, ID='train', plots=False)
 
         #%%##########################################################################################
         # Inter-centroid distance
@@ -95,7 +85,7 @@ def tries_loop(sens_comb):
         #if len(np.unique(np.array(mapping_ind))) != 19:
             #raise ValueError("Centroids have not been detected correctly!")
 
-        X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, used_sensorNames, tba_ind, ID='test', plots=False)[:2]
+        X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, used_sensorNames, takevar_ind, ID='test', plots=False)[:2]
 
         y_hat_tr = k_means_fitted.predict(X_tr)
         y_hat_te = k_means_fitted.predict(X_te)
@@ -172,8 +162,10 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 
 sensors_combinations = list()
 
-for n in [9]:
-    sensors_combinations += list(it.combinations([6, 15, 16, 17, 24, 26, 33, 34, 35, 42, 43, 44], n))
+valid_sens = [6, 7, 15, 16, 17, 24, 26, 31, 32, 33, 34, 35, 39, 40, 41, 42, 43, 44]
+
+for n in [16]:
+    sensors_combinations += list(it.combinations(valid_sens, n))
     #sensors_combinations += list(it.combinations(sensors_IDs, n))
 
 # Acc_te to beat: 0.8551578947368421

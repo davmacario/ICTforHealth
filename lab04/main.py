@@ -4,6 +4,7 @@ import numpy as np
 from sub.preprocessor import generateDF, preprocessor, buildDataSet, dist_eval
 from sklearn.cluster import KMeans
 from sub.evaluators import evalAccuracy, interCentroidDist, centroidSeparationPlot
+from sub.pca import PCA
 
 from sub.preprocessor import sensNames, actNames, actNamesShort
 
@@ -61,13 +62,16 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 
 #%%##########################################################################################
 # Features to be kept #############################################
-# used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
+#used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
 
 # Evaluated as the best combination of 12 elements in terms of accuracy on the test set
-# used_sensors = [6, 15, 16, 17, 24, 26, 33, 34, 35, 42, 43, 44]
+#used_sensors = [6, 15, 16, 17, 24, 26, 33, 34, 35, 42, 43, 44]
 
 # Best comb. of 9 elements:
-used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
+#used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
+used_sensors = [6, 15, 16, 17, 24, 26, 31, 32, 33, 34, 35, 39, 40, 41, 42, 43]
+
+
 
 used_sensorNames = [sensNames[i] for i in used_sensors]
 
@@ -83,7 +87,8 @@ print('Number of used sensors: ', len(used_sensors))
 tba_ind = [[]]
 
 # Features to be replaced with variance at undersampling #############
-takevar_ind = [33, 34, 35, 42, 43, 44]
+#takevar_ind = [33, 34, 35, 42, 43, 44]
+takevar_ind = []
 
 # Translate into strings:
 tba_names = []
@@ -108,6 +113,14 @@ n_clusters = len(activities)
 X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities,\
          slices_tr, used_sensors, used_sensorNames, takevar_names, ID='train', plots=True)
 
+#### PCA:
+do_PCA = True
+n_dim_pca = 15
+if do_PCA:
+    pca = PCA(X_tr)
+    X_tr_pca = pca.reduce_dim(X_tr, n_dim_pca)
+    start_centroids = pca.reduce_dim(start_centroids, n_dim_pca)
+
 #%%##########################################################################################
 # Inter-centroid distance
 interCentroidDist(start_centroids, actNamesShort, plot=True, save_img=True)
@@ -120,8 +133,12 @@ centroidSeparationPlot(start_centroids, stdpoints, actNamesShort, save_img=True)
 
 
 # K-means - initialize centroids as the mean centroids evaluated on the training set
-k_means = KMeans(n_clusters=n_clusters, init=start_centroids, max_iter=1000, tol=1e-10)
-k_means_fitted = k_means.fit(X_tr)
+if do_PCA:
+    k_means = KMeans(n_clusters=n_clusters, init=start_centroids, max_iter=1000, tol=1e-10)
+    k_means_fitted = k_means.fit(X_tr_pca)    
+else:
+    k_means = KMeans(n_clusters=n_clusters, init=start_centroids, max_iter=1000, tol=1e-10)
+    k_means_fitted = k_means.fit(X_tr)
 
 # Classes id's are between 1 and 19 (not 0 and 18)
 # print(k_means_fitted.labels_ + 1)
@@ -162,8 +179,14 @@ plt.show()
 
 X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, used_sensorNames, takevar_names, ID='test', plots=False)[:2]
 
-y_hat_tr = k_means_fitted.predict(X_tr)
-y_hat_te = k_means_fitted.predict(X_te)
+if do_PCA:
+    X_te_pca = pca.reduce_dim(X_te, n_dim_pca)
+
+    y_hat_tr = k_means_fitted.predict(X_tr_pca)
+    y_hat_te = k_means_fitted.predict(X_te_pca)
+else:
+    y_hat_tr = k_means_fitted.predict(X_tr)
+    y_hat_te = k_means_fitted.predict(X_te)
 
 # Accuracy
 acc_tr_kmeans = evalAccuracy(y_hat_tr+1, y_tr)

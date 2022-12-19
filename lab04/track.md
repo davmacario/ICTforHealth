@@ -33,3 +33,4 @@ Can use **at most 30 (/60) slices in the training phase** and can do less than 1
 * 2022-12-13: created a function to perform extraction and get centroids of the data; it allows to easily create and manage training and test sets
 * 2022-12-15: found best combination of 12 sensors that yield the greatest accuracy
 * 2022-12-16: added denoiser program, based on fft
+* 2022-12-19: added PCA, tried it on more features (all but )

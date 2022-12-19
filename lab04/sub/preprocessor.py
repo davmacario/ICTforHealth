@@ -294,7 +294,6 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
     Parameters:
     - filedir: difectory of the input files
     - patient: considered patient
-    - slices: considered slices (list of int)
     - activities: array of activity IDs
     - slices: array of slice IDs
     - all_sensors: list of sensors IDs to be read
@@ -307,10 +306,10 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
     - plots: flag for plotting figures
     ---------------------------------------------------------
     """
-    
+    # Distinguish between training and test set preprocessing
     if ID == 'train':
-        dbscan = True
-        var_norm = True
+        dbscan = False
+        var_norm = False
     else:
         dbscan = False
         var_norm = False
@@ -345,7 +344,7 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
         # Preprocess (same parameters as before) - need to pass elements 
         # without class, else the label is modified (processed...)
         x_curr = preprocessor(x_curr, us_factor=50, lp=False, fs=25, lp_freq=12, dbscan=dbscan,
-                            dbscan_eps=1.2, dbscan_M=6, var_norm=var_norm)  # (Nslices*125)x(n_sensors)
+                            dbscan_eps=10, dbscan_M=6, var_norm=var_norm)  # (Nslices*125)x(n_sensors)
 
         # Centroid i corresponds to class i+1
         start_centroids[act-1, :] = x_curr.mean().values
@@ -354,13 +353,14 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
         stdpoints[act-1] = np.sqrt(x_curr.var().values)
 
         # Replace labels
-        x_curr['activity'] = labels_curr[0]
+        x_final = x_curr.copy()
+        x_final['activity'] = labels_curr[0]
 
         if not created:
-            x_tr_df = x_curr.copy()
+            x_tr_df = x_final.copy()
             created = True
         else:
-            x_tr_df = pd.concat([x_tr_df, x_curr])
+            x_tr_df = pd.concat([x_tr_df, x_final])
 
         if plots:
             plt.subplot(1, 2, 1)
