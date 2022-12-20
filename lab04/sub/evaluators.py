@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
+import seaborn as sn
 import matplotlib.pyplot as plt
 import sklearn.cluster as sk
+import sklearn.metrics as metrics
 
 def evalAccuracy(col_predict, col_label):
     """
@@ -32,6 +34,28 @@ def evalAccuracy(col_predict, col_label):
     accuracy = tmp_sum/n_elem
 
     return accuracy
+
+
+def plotConfusionMatrix(col_predict, col_label, class_names, title='Confusion Matrix', save_img=False, img_path='./img/conf_matrix.png'):
+  """
+  plotConfusionMatrix
+  ----------------------------------------------------------
+  Plot the confusion matrix
+  ----------------------------------------------------------
+  """
+  cm = metrics.confusion_matrix(col_label, col_predict)
+  cm_df = pd.DataFrame(cm, index=class_names, columns=class_names)
+  
+  plt.figure(figsize=(10, 8))
+  ax = sn.heatmap(cm_df, annot=True, cmap='BuPu')
+  ax.set_xlabel("Predicted class")
+  ax.set_ylabel("True class")
+  plt.title(title)
+  if save_img:
+    plt.savefig(img_path)
+  plt.tight_layout()
+  plt.show()
+
 
 
 def interCentroidDist(centroids, cent_names_axis, plot=False, save_img=False, img_path='img/inter_centroid_dist.png'):
@@ -160,5 +184,3 @@ def centroidSeparationPlot(centroids, stdpoints, cent_names_axis, save_img=False
         plt.savefig(img_path)
     plt.show()
 
-# TODO: 
-# def plotConfusionMatrix()

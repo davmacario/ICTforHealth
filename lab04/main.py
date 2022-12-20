@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sub.preprocessor import generateDF, preprocessor, buildDataSet, dist_eval
 from sklearn.cluster import KMeans
-from sub.evaluators import evalAccuracy, interCentroidDist, centroidSeparationPlot
+from sub.evaluators import evalAccuracy, interCentroidDist, centroidSeparationPlot, plotConfusionMatrix
 from sub.pca import PCA
 
 from sub.preprocessor import sensNames, actNames, actNamesShort
@@ -70,8 +70,6 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 # Best comb. of 9 elements:
 #used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
 used_sensors = [6, 15, 16, 17, 24, 26, 31, 32, 33, 34, 35, 39, 40, 41, 42, 43]
-
-
 
 used_sensorNames = [sensNames[i] for i in used_sensors]
 
@@ -159,6 +157,8 @@ for i in range(n_clusters):
     plt.plot(start_centroids[mapping_ind[i]-1, :], ":", label="closest element")
     plt.grid()
     plt.legend()
+    if not do_PCA:
+        plt.xticks(np.arange(X_tr.shape[1]), list(used_sensorNames), rotation=90)
     plt.title("Class "+str(mapping_ind[i]))
 
 if len(np.unique(np.array(mapping_ind))) != 19:
@@ -174,7 +174,8 @@ for i in range(n_clusters):
 plt.grid()
 plt.legend()
 plt.title('Centroids from K-means')
-plt.xticks(np.arange(X_tr.shape[1]), list(used_sensorNames), rotation=90)
+if not do_PCA:
+    plt.xticks(np.arange(X_tr.shape[1]), list(used_sensorNames), rotation=90)
 plt.show()
 
 X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, used_sensorNames, takevar_names, ID='test', plots=False)[:2]
@@ -192,6 +193,9 @@ else:
 acc_tr_kmeans = evalAccuracy(y_hat_tr+1, y_tr)
 acc_te_kmeans = evalAccuracy(y_hat_te+1, y_te)
 #### Notice: the label saved in y_hat_te goes from 0 to 18, not from 1 to 19
+
+plotConfusionMatrix(y_hat_tr+1, y_tr, actNamesShort, title='Confusion Matrix, train', save_img=True, img_path='img/conf_mat_tr.png')
+plotConfusionMatrix(y_hat_te+1, y_te, actNamesShort, title='Confusion Matrix, test', save_img=True, img_path='img/conf_mat_te.png')
 
 print(f"Accuracy (training): {acc_tr_kmeans}")
 print(f"Accuracy (test): {acc_te_kmeans}")
