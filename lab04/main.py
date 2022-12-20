@@ -9,7 +9,6 @@ from sub.pca import PCA
 from sub.preprocessor import sensNames, actNames, actNamesShort
 
 """ 
-- TODO[7]: Plot confusion matrix for both training and test sets
 - TODO[9]: Improve system for accuracy ~= 85%-90%
 """
 
