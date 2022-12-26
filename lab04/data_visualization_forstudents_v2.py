@@ -107,8 +107,7 @@ activities=list(range(1,20)) #list of indexes of activities to plot
 Num_activities=len(activities)
 NAc=19 # total number of activities
 actNamesSub=[actNamesShort[i-1] for i in activities] # short names of the selected activities
-#sensors=list(range(9)) # list of sensors
-sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
+sensors=list(range(45)) # list of sensors
 sensNamesSub=[sensNames[i] for i in sensors] # names of selected sensors
 Nslices=12 # number of slices to plot
 #Ntot=60 #total number of slices
@@ -132,8 +131,8 @@ for i in activities:
     plt.legend()
     plt.grid()
     plt.xlabel('time (s)')
-    plt.tight_layout()
     plt.title(actNames[i-1])
+    plt.tight_layout()
     plt.show()
 #%% plot centroids and stand. dev. of sensor values
 print('Number of used sensors: ',len(sensors))
@@ -144,9 +143,6 @@ for i in range(1,NAc+1):
     activities=[i]
     x=generateDF(filedir,sensNamesSub,sensors,patients,activities,slices)
     x=x.drop(columns=['activity'])
-
-    x = preprocessor(x, us_factor=50, dbscan=True,
-                            dbscan_eps=1.2, dbscan_M=6, var_norm=False)
 
     centroids[i-1,:]=x.mean().values
     plt.subplot(1,2,1)

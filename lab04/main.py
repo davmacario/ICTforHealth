@@ -12,21 +12,21 @@ from sub.preprocessor import sensNames, actNames, actNamesShort
 - TODO[9]: Improve system for accuracy ~= 85%-90%
 """
 
-
 # 19 activities
 # 25 Hz sampling frequency
 # 8 subjects
 # Each activity performed by each subject for 5 minutes
-# One file for each 5 seconds (60 files)
+# One file (slice) for each 5 seconds (60 slices)
 # Each file contains 125 (= 25 Hz*5 seconds) lines (measurements)
 
 # 5 positions (torso, la, ra ll, rl), 3 sensors per position (acceler., gyro, magnetometers),
 # each measuring 3 values (x, y, z) of each parameter
 # -> 45 features per measurement
 
-# Each file contains data in the shape 125x45
+# Each file (slice) contains data in the shape 125x45
 
 #%%##########################################################################################
+# General settings
 plt.close('all')
 
 cm = plt.get_cmap('gist_rainbow')
@@ -35,25 +35,26 @@ line_styles = ['solid', 'dashed', 'dotted']
 filedir = 'data/'
 
 #%%##########################################################################################
-
+# SETTING PARAMETERS
+####################
 student_ID = 315054
 s = student_ID % 8 + 1  # Used subject
-print(f"Used subject: {s}")
+print(f"Used subject ID: {s}")
 
 patients = [s]
 
-NAc = 19                                # Total number of activities
+NAc = 19                                            # Total number of activities
 
-# Total number of sensors (TO BE TUNED)
+# Total number of sensors
 n_sensors_tot = 45
-sensors_IDs = list(range(n_sensors_tot))        # List of sensors
-sensNamesSub = [sensNames[i] for i in sensors_IDs]  # Names of selected sensors
+sensors_IDs = list(range(n_sensors_tot))            # List of sensor IDs
+sensNamesSub = [sensNames[i] for i in sensors_IDs]  # Names of sensors
 
 # Number of slices to plot (TO BE TUNED)
-Nslices = 10
-# Nslices = 60
+Nslices = 12
 Ntot = 60                               # Total number of slices
 slices = list(range(1, Nslices+1))       # First Nslices to plot
+print(f"Training set slices: {Nslices}")
 
 fs = 25                                 # Hz, sampling frequency (fixed)
 samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each slice is 5 seconds
@@ -64,11 +65,19 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 #used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
 
 # Evaluated as the best combination of 12 elements in terms of accuracy on the test set
-#used_sensors = [6, 15, 16, 17, 24, 26, 33, 34, 35, 42, 43, 44]
+# used_sensors = [6, 15, 16, 17, 24, 26, 33, 34, 35, 42, 43, 44]
 
 # Best comb. of 9 elements:
-#used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
-used_sensors = [6, 15, 16, 17, 24, 26, 31, 32, 33, 34, 35, 39, 40, 41, 42, 43]
+used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
+
+# used_sensors = [6, 15, 16, 17, 24, 26, 31, 32, 33, 34, 35, 39, 40, 41, 42, 43]
+
+# acc_id = [0, 1, 2, 9, 10, 11, 18, 19, 20, 27, 28, 29, 36, 37, 38]
+# gyro_id = [n + 3 for n in acc_id]
+# mag_id = [n + 6 for n in acc_id]
+
+# used_sensors = np.array(mag_id + gyro_id)
+# used_sensors = used_sensors[np.argsort(used_sensors)]       # Need to sort them...
 
 used_sensorNames = [sensNames[i] for i in used_sensors]
 
@@ -95,7 +104,7 @@ if (len(tba_ind[0]) > 0):  # !!! tba_ind = [[]] has length 1...
 
 takevar_names = [sensNames[i] for i in takevar_ind]
 
-####
+#### Splitting training and test sets
 n_slices_tr = Nslices
 n_slices_te = Ntot - n_slices_tr
 
@@ -111,8 +120,8 @@ X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activit
          slices_tr, used_sensors, used_sensorNames, takevar_names, ID='train', plots=True)
 
 #### PCA:
-do_PCA = True
-n_dim_pca = 15
+do_PCA = False
+n_dim_pca = len(used_sensors) - 1
 if do_PCA:
     pca = PCA(X_tr)
     X_tr_pca = pca.reduce_dim(X_tr, n_dim_pca)
@@ -128,13 +137,15 @@ interCentroidDist(start_centroids, actNamesShort, plot=True, save_img=True)
 
 centroidSeparationPlot(start_centroids, stdpoints, actNamesShort, save_img=True)
 
+#%%##########################################################################################
+# K-MEANS ################################
 
-# K-means - initialize centroids as the mean centroids evaluated on the training set
+# Initialize centroids as the mean centroids evaluated on the training set
 if do_PCA:
-    k_means = KMeans(n_clusters=n_clusters, init=start_centroids, max_iter=1000, tol=1e-10)
+    k_means = KMeans(n_clusters=n_clusters, init=start_centroids, n_init=1, max_iter=1000, tol=1e-10)
     k_means_fitted = k_means.fit(X_tr_pca)    
 else:
-    k_means = KMeans(n_clusters=n_clusters, init=start_centroids, max_iter=1000, tol=1e-10)
+    k_means = KMeans(n_clusters=n_clusters, init=start_centroids, n_init=1, max_iter=1000, tol=1e-10)
     k_means_fitted = k_means.fit(X_tr)
 
 # Classes id's are between 1 and 19 (not 0 and 18)
@@ -143,7 +154,7 @@ else:
 # Associate to each label the correct activity
 mapping_ind = np.zeros((n_clusters,), dtype=np.int8)
 
-# Approach (2): each centroid corresponds to the class of the 
+# Approach: each centroid corresponds to the class of the 
 # closest 'centroid' found before as the mean 
 # (IT WORKS! - Notice: average centroids were also used to initialize K-means centroids)
 for i in range(n_clusters):

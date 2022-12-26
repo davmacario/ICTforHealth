@@ -107,8 +107,14 @@ def generateDF(filedir, colnames, sensors, patients, activities, slices):
                             sort=False, copy=True)
     return x
 
-def preprocessor(df, us_factor=1, takeVar=[], lp=False, fs=25, lp_freq=10, \
-    dbscan=False, dbscan_eps=1, dbscan_M=5, msv_list=[[]], var_norm=False, var_thresh=1):
+# Preprocessing pipeline
+def preprocessor(df, 
+                lp=False, fs=25, lp_freq=10,
+                us_factor=1, 
+                takeVar=[], 
+                dbscan=False, dbscan_eps=1, dbscan_M=5, 
+                msv_list=[[]], 
+                var_norm=False, var_thresh=1):
     """
     preprocessor
     --------------------------------------------------------------
@@ -117,22 +123,28 @@ def preprocessor(df, us_factor=1, takeVar=[], lp=False, fs=25, lp_freq=10, \
     Possible preprocessing strategies:
     - Undersampling
         - When downsampling, replace feature with variance
+    - Low-pass filter
     - Mean squared value of x, y, z of each measure
     - Normalize variance of selected features
     --------------------------------------------------------------
     Input parameters:
     - df: input dataframe
-    - us_factor: undersampling factor
-    - takeVar: flag for substituting average feature with 
-      variance (also if variance = 0)
+
     - lp: flag for using a low-pass filter (Butterworth 2nd order)
     - fs: sampling frequency of the signal
-    - lp_freq: cutoff frequency of the lpf
+    - lp_freq: cutoff frequency of the lpf (must be <= 0.5*fs)
+
+    - us_factor: undersampling (averaging) factor
+
+    - takeVar: list of features to be substituted with their variance
+
     - dbscan: flag for performing dbscan
     - dbscan_eps: hypersphere radius of DBSCAN
     - dbscan_M: number of neighbors dbscan
+
     - msv_list = list of lists including the features to be 
       replaced with their mean square value (after undersampling)
+
     - var_norm: flag for performing variance normalization
     - var_thresh: value of the variance above which normalization is 
       performed
@@ -141,10 +153,19 @@ def preprocessor(df, us_factor=1, takeVar=[], lp=False, fs=25, lp_freq=10, \
 
     df_start = df.copy()
     n_p, n_f = df.shape
-
     feat_list = df_start.columns
 
-    # Undersampling
+    start_values = df_start.values
+
+    ############## LPF:
+    if lp:
+        for i in range(n_p):
+            start_values[i, :] = np.copy(custom_filter(start_values[i, :], fs, lp_freq))
+
+        df_start = pd.DataFrame(start_values, columns=feat_list)
+
+
+    ############## Undersampling
     n_p_us = int(np.ceil(n_p/us_factor))
 
     # Work wih matrices (better)
@@ -168,7 +189,7 @@ def preprocessor(df, us_factor=1, takeVar=[], lp=False, fs=25, lp_freq=10, \
                 rows_avg = rows_avg.drop(labels=[feat])
                 newname = 'var_'+str(feat)
                 # newname = str(feat)
-                rows_avg[newname] = var_curr
+                rows_avg[newname] = var_curr.copy()
 
         # Place the created feature at the end of the data matrix
         feat_list = rows_avg.index
@@ -176,13 +197,7 @@ def preprocessor(df, us_factor=1, takeVar=[], lp=False, fs=25, lp_freq=10, \
 
     n_p_processed = processed_mat.shape[0]
 
-    # LPF:
-    if lp:
-        for i in range(n_p_processed):
-            # Notice - the sampling frequency is like if it was reduced when averaging (undersampling)
-            processed_mat[i, :] = np.copy(custom_filter(processed_mat[i, :], fs/us_factor, lp_freq/us_factor))
-
-    # DBSCAN
+    ############## DBSCAN
     if dbscan:
         clustering = sk.DBSCAN(
             eps=dbscan_eps, min_samples=dbscan_M).fit(processed_mat)
@@ -194,7 +209,7 @@ def preprocessor(df, us_factor=1, takeVar=[], lp=False, fs=25, lp_freq=10, \
 
     df_proc = pd.DataFrame(processed_mat, columns=feat_list)
 
-    # MSV of features:
+    ############## MSV of features:
     if (len(msv_list[0]) > 0):
         for i in range(len(msv_list)):
             curr_list = msv_list[i]
@@ -205,6 +220,7 @@ def preprocessor(df, us_factor=1, takeVar=[], lp=False, fs=25, lp_freq=10, \
             df_proc = df_proc.drop(columns=curr_list)
             col_name = 'msv_'+str(i)
             df_proc[col_name] = np.sqrt(tmp_sum)
+
 
     # May be unnecessary
     # Variance normalization:
@@ -218,25 +234,6 @@ def preprocessor(df, us_factor=1, takeVar=[], lp=False, fs=25, lp_freq=10, \
     return df_proc
 
 
-def denoiser(x, cutoff):
-    """
-    denoiser
-    ----------------------------------------------------
-    fft-based simple low-pass filter
-    ----------------------------------------------------
-    """
-    n_elem = len(x)
-    
-    x_fft = np.fft.fft(x, n_elem)
-
-    PSD = x_fft*np.conj(x_fft)/n_elem
-
-    _mask = PSD > cutoff
-    x_fft_filt = x_fft * _mask
-
-    x_filt = np.fft.ifft(x_fft_filt).real
-
-    return x_filt
 
 def custom_filter(x, fs, cutoff):
     """
@@ -283,7 +280,9 @@ def dist_eval(element, train):
 #
 #
 #
-def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_names, sensors_var, ID='train', plots=True):
+def buildDataSet(filedir, patient, activities, slices, 
+                all_sensors, all_sensors_names, sensors_var, 
+                ID='train', plots=True):
     # TODO: add plots (flags) + save them
     """
     buildDataSet
@@ -306,6 +305,8 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
     - plots: flag for plotting figures
     ---------------------------------------------------------
     """
+    use_lpf = False
+    
     # Distinguish between training and test set preprocessing
     if ID == 'train':
         dbscan = False
@@ -343,8 +344,12 @@ def buildDataSet(filedir, patient, activities, slices, all_sensors, all_sensors_
         x_curr = x_curr.drop(columns=['activity'])
         # Preprocess (same parameters as before) - need to pass elements 
         # without class, else the label is modified (processed...)
-        x_curr = preprocessor(x_curr, us_factor=50, lp=False, fs=25, lp_freq=12, dbscan=dbscan,
-                            dbscan_eps=10, dbscan_M=6, var_norm=var_norm)  # (Nslices*125)x(n_sensors)
+        x_curr = preprocessor(x_curr, 
+                            lp=use_lpf, fs=25, lp_freq=10, 
+                            us_factor=25, 
+                            takeVar=sensors_var, 
+                            dbscan=dbscan, dbscan_eps=10, dbscan_M=6, 
+                            var_norm=var_norm)  # (Nslices*125)x(n_sensors)
 
         # Centroid i corresponds to class i+1
         start_centroids[act-1, :] = x_curr.mean().values

@@ -35,3 +35,4 @@ Can use **at most 30 (/60) slices in the training phase** and can do less than 1
 * **2022-12-16**: added denoiser program, based on fft
 * **2022-12-19**: added PCA, tried it on more features (all but gyro)
 * **2022-12-20**: added function for plotting confusion matrix; accuracy at 86.27% (PCA from 16 to 15)
+* **2022-12-26**: started working on 'develop' branch - don't know what to do... nothing seems to work better
