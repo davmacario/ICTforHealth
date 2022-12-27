@@ -15,7 +15,7 @@ The 5-min signals are divided into 5-sec segments so that
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from sub.preprocessor import generateDF, preprocessor, buildDataSet, dist_eval, custom_filter
+from sub.preprocessor import generateDF, Preprocessor, buildDataSet, dist_eval
 
 cm = plt.get_cmap('gist_rainbow')
 line_styles=['solid','dashed','dotted']
@@ -107,34 +107,36 @@ activities=list(range(1,20)) #list of indexes of activities to plot
 Num_activities=len(activities)
 NAc=19 # total number of activities
 actNamesSub=[actNamesShort[i-1] for i in activities] # short names of the selected activities
-#sensors=list(range(9)) # list of sensors
-sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
+#sensors=list(range(45)) # list of sensors
+sensors = [6, 7, 15, 16, 24, 25, 33, 34, 42, 43]
 sensNamesSub=[sensNames[i] for i in sensors] # names of selected sensors
-Nslices=12 # number of slices to plot
+Nslices=60 # number of slices to plot
 #Ntot=60 #total number of slices
 slices=list(range(1,Nslices+1))# first Nslices to plot
 fs=25 # Hz, sampling frequency
 samplesPerSlice=fs*5 # samples in each slice
 #%% plot the measurements of each selected sensor for each of the activities
+prep = Preprocessor(fs=25, filt_type='bandstop', cutoff=[0.01, 12], us_factor=1)
+
 for i in activities:
     activities=[i]
     x=generateDF(filedir,sensNamesSub,sensors,patients,activities,slices)
     x=x.drop(columns=['activity'])
-    x = preprocessor(x, us_factor=1, dbscan=False, var_norm=False)
-    sensors=list(x.columns)
+    x = prep.transform(x)
+    sensors_n=list(x.columns)
     data=x.values
     plt.figure(figsize=(6,6))
     time=np.arange(data.shape[0])/fs # set the time axis
     for k in range(len(sensors)):
-        lines=plt.plot(time,data[:,k],'.',label=sensors[k],markersize=1)
+        lines=plt.plot(time,data[:,k],'.',label=sensors_n[k],markersize=1)
         lines[0].set_color(cm(k//3*3/len(sensors)))
         lines[0].set_linestyle(line_styles[k%3])
     plt.legend()
     plt.grid()
     plt.xlabel('time (s)')
-    plt.tight_layout()
     plt.title(actNames[i-1])
-    plt.show()
+    plt.tight_layout()
+plt.show()
 #%% plot centroids and stand. dev. of sensor values
 print('Number of used sensors: ',len(sensors))
 centroids=np.zeros((NAc,len(sensors)))# centroids for all the activities
@@ -144,9 +146,6 @@ for i in range(1,NAc+1):
     activities=[i]
     x=generateDF(filedir,sensNamesSub,sensors,patients,activities,slices)
     x=x.drop(columns=['activity'])
-
-    x = preprocessor(x, us_factor=50, dbscan=True,
-                            dbscan_eps=1.2, dbscan_M=6, var_norm=False)
 
     centroids[i-1,:]=x.mean().values
     plt.subplot(1,2,1)

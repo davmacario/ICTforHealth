@@ -29,7 +29,6 @@ def tries_loop(sens_comb):
     set_best_acc_te = []
 
     for used_sensors in sens_comb:
-        #used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
         used_sensorNames = [sensNames[i] for i in used_sensors]
 
         print('Number of used sensors: ', len(used_sensors))
@@ -65,7 +64,7 @@ def tries_loop(sens_comb):
 
 
         # K-means - initialize centroids as the mean centroids evaluated on the training set
-        k_means = KMeans(n_clusters=n_clusters, init=start_centroids, max_iter=1000, tol=1e-10)
+        k_means = KMeans(n_clusters=n_clusters, init=start_centroids, n_init=1, max_iter=1000, tol=1e-10)
         k_means_fitted = k_means.fit(X_tr)
 
         # Classes id's are between 1 and 19 (not 0 and 18)
@@ -162,21 +161,16 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 
 sensors_combinations = list()
 
-valid_sens = [6, 7, 15, 16, 17, 24, 26, 31, 32, 33, 34, 35, 39, 40, 41, 42, 43, 44]
+acc_id = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
+gyro_id = [n + 3 for n in acc_id]
+mag_id = [n + 6 for n in acc_id]
 
-for n in [16]:
+valid_sens = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
+
+for n in [9]:
     sensors_combinations += list(it.combinations(valid_sens, n))
     #sensors_combinations += list(it.combinations(sensors_IDs, n))
 
 # Acc_te to beat: 0.8551578947368421
 
-# best_acc_tr = 0
-# best_acc_te = 0
-
-# set_best_acc_tr = []
-# set_best_acc_te = []
-
 best_acc_te, set_best_acc_te = tries_loop(sensors_combinations)
-
-# processes_pool = Pool(8)
-# run_tries_loop(tries_loop, sensors_combinations, processes_pool)
