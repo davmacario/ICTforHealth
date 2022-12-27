@@ -94,7 +94,7 @@ activities = list(range(1, NAc + 1))
 
 n_clusters = len(activities)
 
-preproc = Preprocessor(fs=fs, filt_type='bandstop', cutoff=[0.01, 12], us_factor=1)
+preproc = Preprocessor(fs=fs, nfft=25)
 
 X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities,\
          slices_tr, used_sensors, preprocessor_obj=preproc, plots=True)

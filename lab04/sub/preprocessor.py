@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.cluster as sk
-from scipy import signal
+from scipy import fft, signal
 
 #
 #
@@ -146,7 +146,7 @@ def dist_eval(element, train):
 # class to allow for evaluating the filter 
 # parameters just once
 class Preprocessor:
-    def __init__(self, fs, filt_type, cutoff, us_factor=25):
+    def __init__(self, fs, nfft=25):
         """
         Preprocessor
         --------------------------------------------------------------
@@ -165,19 +165,13 @@ class Preprocessor:
             - `none` -> no filter will be applied
         - cutoff: cutoff frequency for the filter. If the filter is 
           either bandpass or bandstop, it must be a length-2 sequence
-        - us_factor: undersampling factor, i.e., number of samples to 
+        - nfft: undersampling factor, i.e., number of samples to 
           be averaged
         --------------------------------------------------------------
         """
-        self.us = us_factor
+        self.nfft = nfft
         self.fs = fs
-        self.cutoff = cutoff
-        self.filt_type = filt_type
-        if filt_type == 'none':
-            self.filt = False
-        else:
-            self.filt = True
-            self._b, self._a = signal.butter(2, cutoff, btype=filt_type, fs=fs)
+        self.f_ny = float(fs)/2
         
 
     # Complete preprocessing pipeline
@@ -197,36 +191,16 @@ class Preprocessor:
 
         start_values = df_start.values
 
-        ############## Filter ################################################################
-        if self.filt:
-            for i in range(n_f):
-                # The signals (time series) are on the columns - 1 signal per sensor
-                start_values[:, i] = np.array(signal.filtfilt(self._b, self._a, start_values[:, i]))
+        ############## Frequency domain #################################################
+        # every `nfft` samples, evaluate the spectrum
 
-            df_start = pd.DataFrame(start_values, columns=feat_list)
+        # Move to frequency domain - periodogram (one sided)
+        f = np.zeros((self.nfft, n_f))
+        values_freq = np.zeros((self.nfft, n_f))
+        
+        f, values_freq = signal.periodogram(start_values, fs=self.fs, nfft=2*self.nfft, axis=0)
 
-        ############## Undersampling
-        n_p_us = int(np.ceil(n_p/self.us))
-
-        # Work wih matrices (better)
-        processed_mat = np.zeros((n_p_us, len(feat_list)))
-
-        for i in range(n_p_us):
-            # Average the measurements at groups of 'us_factor'
-            # final index (+1) for considered group
-            end_ind = min(n_p, (i+1)*self.us)
-            index_list = list(range(i*self.us, end_ind))
-
-            current_subset = df_start.iloc[index_list]
-
-            # Take mean of measurement
-            rows_avg = current_subset.mean(axis=0)
-
-            # Place the created feature at the end of the data matrix
-            feat_list = rows_avg.index
-            processed_mat[i, :] = np.copy(rows_avg.values)
-
-        df_proc = pd.DataFrame(processed_mat, columns=feat_list)
+        df_proc = pd.DataFrame(values_freq, columns=feat_list)
         ######
 
         return df_proc
@@ -270,7 +244,7 @@ def buildDataSet(filedir, patient, activities, slices,
     stdpoints = np.zeros((n_clusters, n_features))
 
     if preprocessor_obj is None:
-        preprocessor_obj = Preprocessor(fs=25, filt_type='bandstop', cutoff=[0.01, 12], us_factor=1)
+        preprocessor_obj = Preprocessor(fs=25, nfft=25)
 
     if plots:
         plt.figure(figsize=(12, 6))
