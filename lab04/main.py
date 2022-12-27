@@ -1,15 +1,16 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from sub.preprocessor import generateDF, preprocessor, buildDataSet, dist_eval
 from sklearn.cluster import KMeans
+
+from sub.preprocessor import Preprocessor, buildDataSet, dist_eval
 from sub.evaluators import evalAccuracy, interCentroidDist, centroidSeparationPlot, plotConfusionMatrix
 from sub.pca import PCA
 
-from sub.preprocessor import sensNames, actNames, actNamesShort
+from sub.preprocessor import sensNames, actNamesShort
 
 """ 
-- TODO[9]: Improve system for accuracy ~= 85%-90%
+- TODO[9]: Improve system for accuracy ~= 85%-95%
 """
 
 # 19 activities
@@ -23,7 +24,7 @@ from sub.preprocessor import sensNames, actNames, actNamesShort
 # each measuring 3 values (x, y, z) of each parameter
 # -> 45 features per measurement
 
-# Each file (slice) contains data in the shape 125x45
+# Each file (slice) contains data in the shape 125(records) x45(sensor signals)
 
 #%%##########################################################################################
 # General settings
@@ -51,7 +52,7 @@ sensors_IDs = list(range(n_sensors_tot))            # List of sensor IDs
 sensNamesSub = [sensNames[i] for i in sensors_IDs]  # Names of sensors
 
 # Number of slices to plot (TO BE TUNED)
-Nslices = 12
+Nslices = 10
 Ntot = 60                               # Total number of slices
 slices = list(range(1, Nslices+1))       # First Nslices to plot
 print(f"Training set slices: {Nslices}")
@@ -59,28 +60,18 @@ print(f"Training set slices: {Nslices}")
 fs = 25                                 # Hz, sampling frequency (fixed)
 samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each slice is 5 seconds
 
-
 #%%##########################################################################################
 # Features to be kept #############################################
-#used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
+# used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
 
-# Evaluated as the best combination of 12 elements in terms of accuracy on the test set
-# used_sensors = [6, 15, 16, 17, 24, 26, 33, 34, 35, 42, 43, 44]
+# Best comb. of 9 elements:  (OPTIMAL)
+used_sensors = [6, 7, 15, 16, 24, 33, 34, 42, 43]
 
-# Best comb. of 9 elements:
-# used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
+#used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
+#used_sensors = [15, 16, 24, 25, 33, 34, 42, 43]
 
 # Best combination of 10 sensors:
-used_sensors = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
-
-# used_sensors = [6, 15, 16, 17, 24, 26, 31, 32, 33, 34, 35, 39, 40, 41, 42, 43]
-
-# acc_id = [0, 1, 2, 9, 10, 11, 18, 19, 20, 27, 28, 29, 36, 37, 38]
-# gyro_id = [n + 3 for n in acc_id]
-# mag_id = [n + 6 for n in acc_id]
-
-# used_sensors = np.array(mag_id + gyro_id)
-# used_sensors = used_sensors[np.argsort(used_sensors)]       # Need to sort them...
+#used_sensors = [6, 7, 15, 16, 24, 25, 33, 34, 42, 43]
 
 used_sensorNames = [sensNames[i] for i in used_sensors]
 
@@ -90,22 +81,6 @@ with elements: (6, 15, 16, 24, 26, 33, 42, 43, 44)
 """
 
 print('Number of used sensors: ', len(used_sensors))
-
-# Features to be averaged - MSV ######################################
-# (must be included in the used_sensors list)
-tba_ind = [[]]
-
-# Features to be replaced with variance at undersampling #############
-#takevar_ind = [33, 34, 35, 42, 43, 44]
-takevar_ind = []
-
-# Translate into strings:
-tba_names = []
-if (len(tba_ind[0]) > 0):  # !!! tba_ind = [[]] has length 1...
-    for i in range(len(tba_ind)):
-        tba_names.append([sensNames[j] for j in tba_ind[i]])
-
-takevar_names = [sensNames[i] for i in takevar_ind]
 
 #### Splitting training and test sets
 n_slices_tr = Nslices
@@ -119,12 +94,14 @@ activities = list(range(1, NAc + 1))
 
 n_clusters = len(activities)
 
+preproc = Preprocessor(fs=fs, filt_type='bandstop', cutoff=[0.01, 12], us_factor=1)
+
 X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities,\
-         slices_tr, used_sensors, used_sensorNames, takevar_names, ID='train', plots=True)
+         slices_tr, used_sensors, preprocessor_obj=preproc, plots=True)
 
 #### PCA:
 do_PCA = False
-n_dim_pca = len(used_sensors) - 1
+n_dim_pca = len(used_sensors) - 2
 if do_PCA:
     pca = PCA(X_tr)
     X_tr_pca = pca.reduce_dim(X_tr, n_dim_pca)
@@ -191,7 +168,7 @@ if not do_PCA:
     plt.xticks(np.arange(X_tr.shape[1]), list(used_sensorNames), rotation=90)
 plt.show()
 
-X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, used_sensorNames, takevar_names, ID='test', plots=False)[:2]
+X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, preprocessor_obj=preproc, plots=False)[:2]
 
 if do_PCA:
     X_te_pca = pca.reduce_dim(X_te, n_dim_pca)
