@@ -15,7 +15,7 @@ The 5-min signals are divided into 5-sec segments so that
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from sub.preprocessor import generateDF, preprocessor, buildDataSet, dist_eval, custom_filter
+from sub.preprocessor import generateDF, Preprocessor, buildDataSet, dist_eval
 
 cm = plt.get_cmap('gist_rainbow')
 line_styles=['solid','dashed','dotted']
@@ -108,7 +108,7 @@ Num_activities=len(activities)
 NAc=19 # total number of activities
 actNamesSub=[actNamesShort[i-1] for i in activities] # short names of the selected activities
 #sensors=list(range(45)) # list of sensors
-sensors = [6, 7, 15, 16, 24, 33, 34, 42, 43]
+sensors = [6, 7, 15, 16, 24, 25, 33, 34, 42, 43]
 sensNamesSub=[sensNames[i] for i in sensors] # names of selected sensors
 Nslices=60 # number of slices to plot
 #Ntot=60 #total number of slices
@@ -116,11 +116,13 @@ slices=list(range(1,Nslices+1))# first Nslices to plot
 fs=25 # Hz, sampling frequency
 samplesPerSlice=fs*5 # samples in each slice
 #%% plot the measurements of each selected sensor for each of the activities
+prep = Preprocessor(fs=25, filt_type='bandstop', cutoff=[0.01, 12], us_factor=1)
+
 for i in activities:
     activities=[i]
     x=generateDF(filedir,sensNamesSub,sensors,patients,activities,slices)
     x=x.drop(columns=['activity'])
-    x = preprocessor(x, us_factor=1, dbscan=False, var_norm=False)
+    x = prep.transform(x)
     sensors_n=list(x.columns)
     data=x.values
     plt.figure(figsize=(6,6))
