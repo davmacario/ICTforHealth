@@ -107,9 +107,10 @@ activities=list(range(1,20)) #list of indexes of activities to plot
 Num_activities=len(activities)
 NAc=19 # total number of activities
 actNamesSub=[actNamesShort[i-1] for i in activities] # short names of the selected activities
-sensors=list(range(45)) # list of sensors
+#sensors=list(range(45)) # list of sensors
+sensors = [6, 7, 15, 16, 24, 33, 34, 42, 43]
 sensNamesSub=[sensNames[i] for i in sensors] # names of selected sensors
-Nslices=12 # number of slices to plot
+Nslices=60 # number of slices to plot
 #Ntot=60 #total number of slices
 slices=list(range(1,Nslices+1))# first Nslices to plot
 fs=25 # Hz, sampling frequency
@@ -120,12 +121,12 @@ for i in activities:
     x=generateDF(filedir,sensNamesSub,sensors,patients,activities,slices)
     x=x.drop(columns=['activity'])
     x = preprocessor(x, us_factor=1, dbscan=False, var_norm=False)
-    sensors=list(x.columns)
+    sensors_n=list(x.columns)
     data=x.values
     plt.figure(figsize=(6,6))
     time=np.arange(data.shape[0])/fs # set the time axis
     for k in range(len(sensors)):
-        lines=plt.plot(time,data[:,k],'.',label=sensors[k],markersize=1)
+        lines=plt.plot(time,data[:,k],'.',label=sensors_n[k],markersize=1)
         lines[0].set_color(cm(k//3*3/len(sensors)))
         lines[0].set_linestyle(line_styles[k%3])
     plt.legend()
@@ -133,7 +134,7 @@ for i in activities:
     plt.xlabel('time (s)')
     plt.title(actNames[i-1])
     plt.tight_layout()
-    plt.show()
+plt.show()
 #%% plot centroids and stand. dev. of sensor values
 print('Number of used sensors: ',len(sensors))
 centroids=np.zeros((NAc,len(sensors)))# centroids for all the activities
