@@ -36,3 +36,8 @@ Can use **at most 30 (/60) slices in the training phase** and can do less than 1
 * **2022-12-19**: added PCA, tried it on more features (all but gyro)
 * **2022-12-20**: added function for plotting confusion matrix; accuracy at 86.27% (PCA from 16 to 15)
 * **2022-12-26**: started working on 'develop' branch - don't know what to do... nothing seems to work better
+* **2022-12-27**: after finding top 10 sensors, the results are slightly within the bounds (85.02 acc. on test); the errors are mainly concentrated around: mov.elev, exer.step, play.bb. It turns out I completely messed up how the filter was applied and was now able to find the best filter to achieve a performance of 91.4% accuracy on the test set, using a bandstop filter with cutoffs 0.01 and 12 Hz. This yields the best result since it keeps the DC value (very different between the activities) and the high-frequency components which change a lot between the activities as well (e.g., running and standing).
+
+### Possible improvements
+
+A good idea could be that of **working in frequency domain** only... probably filtering will not be necessary, even if it won't be trivial to make the shift to frequency domain, since the resolution depends on the number of samples. Then zero-padding will be needed in order to increase the frequency resolution for the training set, which has less samples than the test set.
