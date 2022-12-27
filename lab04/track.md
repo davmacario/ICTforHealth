@@ -41,3 +41,5 @@ Can use **at most 30 (/60) slices in the training phase** and can do less than 1
 ### Possible improvements
 
 A good idea could be that of **working in frequency domain** only... probably filtering will not be necessary, even if it won't be trivial to make the shift to frequency domain, since the resolution depends on the number of samples. Then zero-padding will be needed in order to increase the frequency resolution for the training set, which has less samples than the test set.
+
+Another possible improvement could be that of applying the filter on sections of 1 s (25 samples). That way the filter can just be evaluated once and then it will be stored and applied fast (in real time).
