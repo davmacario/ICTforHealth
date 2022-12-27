@@ -68,7 +68,10 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 # used_sensors = [6, 15, 16, 17, 24, 26, 33, 34, 35, 42, 43, 44]
 
 # Best comb. of 9 elements:
-used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
+# used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
+
+# Best combination of 10 sensors:
+used_sensors = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
 
 # used_sensors = [6, 15, 16, 17, 24, 26, 31, 32, 33, 34, 35, 39, 40, 41, 42, 43]
 
