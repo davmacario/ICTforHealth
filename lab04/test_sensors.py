@@ -29,7 +29,6 @@ def tries_loop(sens_comb):
     set_best_acc_te = []
 
     for used_sensors in sens_comb:
-        #used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
         used_sensorNames = [sensNames[i] for i in used_sensors]
 
         print('Number of used sensors: ', len(used_sensors))
@@ -162,13 +161,13 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 
 sensors_combinations = list()
 
-acc_id = [0, 1, 2, 9, 10, 11, 18, 19, 20, 27, 28, 29, 36, 37, 38]
+acc_id = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
 gyro_id = [n + 3 for n in acc_id]
 mag_id = [n + 6 for n in acc_id]
 
-valid_sens = mag_id
+valid_sens = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
 
-for n in [10]:
+for n in [9]:
     sensors_combinations += list(it.combinations(valid_sens, n))
     #sensors_combinations += list(it.combinations(sensors_IDs, n))
 
