@@ -9,10 +9,6 @@ from sub.pca import PCA
 
 from sub.preprocessor import sensNames, actNamesShort
 
-""" 
-- TODO[9]: Improve system for accuracy ~= 85%-95%
-"""
-
 # 19 activities
 # 25 Hz sampling frequency
 # 8 subjects
@@ -73,12 +69,11 @@ used_sensors = [6, 7, 15, 16, 24, 33, 34, 42, 43]
 # Best combination of 10 sensors:
 #used_sensors = [6, 7, 15, 16, 24, 25, 33, 34, 42, 43]
 
-#used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
 used_sensorNames = [sensNames[i] for i in used_sensors]
 
 """ 
-Best accuracy, test: 0.8648421052631579
-with elements: (6, 15, 16, 24, 26, 33, 42, 43, 44)
+Best accuracy, test:
+with elements:
 """
 
 print('Number of used sensors: ', len(used_sensors))

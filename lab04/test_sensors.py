@@ -164,9 +164,9 @@ acc_id = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
 gyro_id = [n + 3 for n in acc_id]
 mag_id = [n + 6 for n in acc_id]
 
-valid_sens = [6, 7, 15, 16, 24, 33, 34, 42, 43]
+valid_sens = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
 
-for n in [9]:
+for n in [6, 8, 10]:
     sensors_combinations += list(it.combinations(valid_sens, n))
     #sensors_combinations += list(it.combinations(sensors_IDs, n))
 
