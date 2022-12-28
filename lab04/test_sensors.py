@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from sub.preprocessor import generateDF, preprocessor, buildDataSet, dist_eval
+from sub.preprocessor import generateDF, Preprocessor, buildDataSet, dist_eval
 from sklearn.cluster import KMeans
 from sub.evaluators import evalAccuracy, interCentroidDist, centroidSeparationPlot
 
@@ -17,9 +17,6 @@ from multiprocessing import Pool
 - TODO[9]: Improve system for accuracy ~= 85%-90%
 """
 
-
-def run_tries_loop(operation, input, pool):
-    pool.map(operation, input)
 
 def tries_loop(sens_comb):
     best_acc_tr = 0
@@ -50,7 +47,10 @@ def tries_loop(sens_comb):
 
         n_clusters = len(activities)
 
-        X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities, slices_tr, used_sensors, used_sensorNames, takevar_ind, ID='train', plots=False)
+        preproc = Preprocessor(fs=fs, filt_type='bandstop', cutoff=[0.02, 10], us_factor=1)
+
+        X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities,\
+                                            slices_tr, used_sensors, preprocessor_obj=preproc, plots=False)
 
         #%%##########################################################################################
         # Inter-centroid distance
@@ -84,7 +84,7 @@ def tries_loop(sens_comb):
         #if len(np.unique(np.array(mapping_ind))) != 19:
             #raise ValueError("Centroids have not been detected correctly!")
 
-        X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, used_sensorNames, takevar_ind, ID='test', plots=False)[:2]
+        X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, preprocessor_obj=preproc, plots=False)[:2]
 
         y_hat_tr = k_means_fitted.predict(X_tr)
         y_hat_te = k_means_fitted.predict(X_te)
@@ -138,7 +138,6 @@ s = student_ID % 8 + 1  # Used subject
 print(f"Used subject: {s}")
 
 patients = [s]
-
 NAc = 19                                # Total number of activities
 
 # Total number of sensors (TO BE TUNED)
@@ -165,7 +164,7 @@ acc_id = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
 gyro_id = [n + 3 for n in acc_id]
 mag_id = [n + 6 for n in acc_id]
 
-valid_sens = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
+valid_sens = [6, 7, 15, 16, 24, 33, 34, 42, 43]
 
 for n in [9]:
     sensors_combinations += list(it.combinations(valid_sens, n))

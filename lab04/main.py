@@ -73,6 +73,7 @@ used_sensors = [6, 7, 15, 16, 24, 33, 34, 42, 43]
 # Best combination of 10 sensors:
 #used_sensors = [6, 7, 15, 16, 24, 25, 33, 34, 42, 43]
 
+#used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
 used_sensorNames = [sensNames[i] for i in used_sensors]
 
 """ 
@@ -94,7 +95,7 @@ activities = list(range(1, NAc + 1))
 
 n_clusters = len(activities)
 
-preproc = Preprocessor(fs=fs, filt_type='bandstop', cutoff=[0.01, 12], us_factor=1)
+preproc = Preprocessor(fs=fs, filt_type='bandstop', cutoff=[0.01, 11], us_factor=1)
 
 X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities,\
          slices_tr, used_sensors, preprocessor_obj=preproc, plots=True)
