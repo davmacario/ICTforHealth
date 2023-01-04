@@ -144,7 +144,7 @@ def dist_eval(element, train):
 #
 # Preprocessing pipeline - implemented as a 
 # class to allow for evaluating the filter 
-# parameters just once
+# parameters just once and reuse the same object
 class Preprocessor:
     def __init__(self, fs, filt_type, cutoff, us_factor=25):
         """

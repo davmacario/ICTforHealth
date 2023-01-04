@@ -9,10 +9,6 @@ from sub.pca import PCA
 
 from sub.preprocessor import sensNames, actNamesShort
 
-""" 
-- TODO[9]: Improve system for accuracy ~= 85%-95%
-"""
-
 # 19 activities
 # 25 Hz sampling frequency
 # 8 subjects
@@ -66,6 +62,9 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 
 # Best comb. of 9 elements:  (OPTIMAL)
 used_sensors = [6, 7, 15, 16, 24, 33, 34, 42, 43]
+
+# Best 6 - 2x on torso, then x mag for every other
+#used_sensors = [6, 7, 15, 24, 33, 42]
 
 #used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
 #used_sensors = [15, 16, 24, 25, 33, 34, 42, 43]

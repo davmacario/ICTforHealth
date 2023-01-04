@@ -166,10 +166,9 @@ mag_id = [n + 6 for n in acc_id]
 
 valid_sens = [6, 7, 15, 16, 24, 33, 34, 42, 43]
 
-for n in [9]:
+for n in [7, 8]:
     sensors_combinations += list(it.combinations(valid_sens, n))
     #sensors_combinations += list(it.combinations(sensors_IDs, n))
 
-# Acc_te to beat: 0.8551578947368421
 
 best_acc_te, set_best_acc_te = tries_loop(sensors_combinations)
