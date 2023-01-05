@@ -240,7 +240,8 @@ class Preprocessor:
 #
 # Function for building the dataset
 def buildDataSet(filedir, patient, activities, slices, 
-                all_sensors, preprocessor_obj=None, plots=True):
+                all_sensors, preprocessor_obj=None, plots=True,
+                savefig=False, imgpath='./img/mean_and_stdev.png'):
 
     """
     buildDataSet
@@ -334,6 +335,8 @@ def buildDataSet(filedir, patient, activities, slices,
         plt.xticks(np.arange(x_curr.shape[1]), list(x_curr.columns), rotation=90)
 
         plt.tight_layout()
+        if savefig:
+            plt.savefig(imgpath)
         plt.show()
 
     X_created = x_tr_df.drop(columns=['activity']).values

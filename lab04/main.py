@@ -97,7 +97,7 @@ n_clusters = len(activities)
 preproc = Preprocessor(fs=fs, filt_type='bandstop', cutoff=[0.01, 11], us_factor=1)
 
 X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities,\
-         slices_tr, used_sensors, preprocessor_obj=preproc, plots=True)
+         slices_tr, used_sensors, preprocessor_obj=preproc, plots=True, savefig=True)
 
 #### PCA:
 do_PCA = False
