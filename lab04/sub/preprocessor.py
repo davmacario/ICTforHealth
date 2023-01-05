@@ -179,6 +179,18 @@ class Preprocessor:
             self.filt = True
             self._b, self._a = signal.butter(2, cutoff, btype=filt_type, fs=fs)
         
+    def plotFreqResp(self, saveimg=False, imgpath='./img/freq_resp.png'):
+        w, h = signal.freqz(self._b, self._a) 
+
+        plt.figure()
+        plt.plot(w*self.fs/(2*np.pi), abs(h)**2)
+        plt.title('Filter frequency response')
+        plt.ylabel(r'$\|H\|^2$')
+        plt.xlabel('Frequency [Hz]')
+        plt.grid()
+        if saveimg:
+            plt.savefig(imgpath)
+        plt.show()
 
     # Complete preprocessing pipeline
     def transform(self, df):
