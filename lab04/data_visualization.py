@@ -92,7 +92,7 @@ NAc = 19 # total number of activities
 actNamesSub = [actNamesShort[i-1] for i in activities] # short names of the selected activities
 
 #sensors=list(range(45)) # list of sensors
-sensors = [6, 7, 15, 16, 24, 33, 34, 42, 43]
+sensors = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 sensNamesSub = [sensNames[i] for i in sensors] # names of selected sensors
 
 Nslices = 60 # number of slices to plot
@@ -101,7 +101,7 @@ slices = list(range(1,Nslices+1))# first Nslices to plot
 fs = 25 # Hz, sampling frequency
 samplesPerSlice = fs*5 # samples in each slice
 #%% plot the measurements of each selected sensor for each of the activities
-prep = Preprocessor(fs=25, filt_type='bandstop', cutoff=[0.01, 11], us_factor=1)
+prep = Preprocessor(fs=25, filt_type='bandstop', cutoff=[0.01, 8], us_factor=1)
 
 for i in activities:
     activities = [i]
@@ -159,7 +159,7 @@ plt.grid()
 plt.title('Standard deviation using '+str(len(sensors))+' sensors')
 plt.xticks(np.arange(x.shape[1]),list(x.columns),rotation=90)
 plt.tight_layout()
-plt.savefig('./img/mean_and_stdev.png')
+plt.savefig('./img/mean_and_stdev_NO_PREPROC.png')
 plt.show()
 
 #%% between centroids distance 

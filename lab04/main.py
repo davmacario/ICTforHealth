@@ -7,7 +7,7 @@ from sub.preprocessor import Preprocessor, buildDataSet, dist_eval
 from sub.evaluators import evalAccuracy, interCentroidDist, centroidSeparationPlot, plotConfusionMatrix
 from sub.pca import PCA
 
-from sub.preprocessor import sensNames, actNamesShort
+from sub.preprocessor import sensNames, actNamesShort, actNames
 
 # 19 activities
 # 25 Hz sampling frequency
@@ -58,21 +58,9 @@ samplesPerSlice = fs*5                  # Samples in each slice (fixed) - each s
 
 #%%##########################################################################################
 # Features to be kept #############################################
-# used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
-
 # Best comb. of 9 elements:  (OPTIMAL)
 used_sensors = [6, 7, 15, 16, 24, 33, 34, 42, 43]
 
-# Best 6 - 2x on torso, then x mag for every other
-#used_sensors = [6, 7, 15, 24, 33, 42]
-
-#used_sensors = [6, 15, 16, 24, 26, 33, 42, 43, 44]
-#used_sensors = [15, 16, 24, 25, 33, 34, 42, 43]
-
-# Best combination of 10 sensors:
-#used_sensors = [6, 7, 15, 16, 24, 25, 33, 34, 42, 43]
-
-#used_sensors = [6, 7, 8, 15, 16, 17, 24, 25, 26, 33, 34, 35, 42, 43, 44]
 used_sensorNames = [sensNames[i] for i in used_sensors]
 
 """ 
@@ -81,6 +69,7 @@ with elements: (6, 15, 16, 24, 26, 33, 42, 43, 44)
 """
 
 print('Number of used sensors: ', len(used_sensors))
+print("Used sensors: ", used_sensorNames)
 
 #### Splitting training and test sets
 n_slices_tr = Nslices
@@ -89,23 +78,29 @@ n_slices_te = Ntot - n_slices_tr
 slices_tr = list(range(1, n_slices_tr+1))
 slices_te = list(range(n_slices_tr+1, Ntot+1))
 
+n_elem_tr = n_slices_tr*125
+n_elem_te = n_slices_te*125
+
 # Consider all activities
 activities = list(range(1, NAc + 1))
 
 n_clusters = len(activities)
 
-preproc = Preprocessor(fs=fs, filt_type='bandstop', cutoff=[0.01, 11], us_factor=1)
+"""
+Preprocessing pipeline: 
+- bandstop filter between 0.01 Hz and 11 Hz
+- NO UNDERSAMPLING
+"""
+us_factor = 1
+n_elem_tr = round(n_elem_tr/us_factor)
+n_elem_te = round(n_elem_te/us_factor)
+preproc = Preprocessor(fs=fs, filt_type='bandstop', cutoff=[0.01, 8], us_factor=us_factor)
+
+preproc.plotFreqResp(saveimg=True)
 
 X_tr, y_tr, start_centroids, stdpoints = buildDataSet(filedir, patients, activities,\
          slices_tr, used_sensors, preprocessor_obj=preproc, plots=True, savefig=True)
 
-#### PCA:
-do_PCA = False
-n_dim_pca = len(used_sensors) - 2
-if do_PCA:
-    pca = PCA(X_tr)
-    X_tr_pca = pca.reduce_dim(X_tr, n_dim_pca)
-    start_centroids = pca.reduce_dim(start_centroids, n_dim_pca)
 
 #%%##########################################################################################
 # Inter-centroid distance
@@ -121,12 +116,8 @@ centroidSeparationPlot(start_centroids, stdpoints, actNamesShort, save_img=True)
 # K-MEANS ################################
 
 # Initialize centroids as the mean centroids evaluated on the training set
-if do_PCA:
-    k_means = KMeans(n_clusters=n_clusters, init=start_centroids, n_init=1, max_iter=1000, tol=1e-10)
-    k_means_fitted = k_means.fit(X_tr_pca)    
-else:
-    k_means = KMeans(n_clusters=n_clusters, init=start_centroids, n_init=1, max_iter=1000, tol=1e-10)
-    k_means_fitted = k_means.fit(X_tr)
+k_means = KMeans(n_clusters=n_clusters, init=start_centroids, n_init=1, max_iter=1000, tol=1e-10)
+k_means_fitted = k_means.fit(X_tr)
 
 # Classes id's are between 1 and 19 (not 0 and 18)
 # print(k_means_fitted.labels_ + 1)
@@ -147,8 +138,7 @@ for i in range(n_clusters):
     plt.plot(start_centroids[mapping_ind[i]-1, :], ":", label="closest element")
     plt.grid()
     plt.legend()
-    if not do_PCA:
-        plt.xticks(np.arange(X_tr.shape[1]), list(used_sensorNames), rotation=90)
+    plt.xticks(np.arange(X_tr.shape[1]), list(used_sensorNames), rotation=90)
     plt.title("Class "+str(mapping_ind[i]))
 
 if len(np.unique(np.array(mapping_ind))) != 19:
@@ -164,28 +154,37 @@ for i in range(n_clusters):
 plt.grid()
 plt.legend()
 plt.title('Centroids from K-means')
-if not do_PCA:
-    plt.xticks(np.arange(X_tr.shape[1]), list(used_sensorNames), rotation=90)
+plt.xticks(np.arange(X_tr.shape[1]), list(used_sensorNames), rotation=90)
+plt.tight_layout()
+plt.savefig('./img/centroids.png')
 plt.show()
 
 X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, preprocessor_obj=preproc, plots=False)[:2]
 
-if do_PCA:
-    X_te_pca = pca.reduce_dim(X_te, n_dim_pca)
-
-    y_hat_tr = k_means_fitted.predict(X_tr_pca)
-    y_hat_te = k_means_fitted.predict(X_te_pca)
-else:
-    y_hat_tr = k_means_fitted.predict(X_tr)
-    y_hat_te = k_means_fitted.predict(X_te)
+y_hat_tr = k_means_fitted.predict(X_tr)
+y_hat_te = k_means_fitted.predict(X_te)
 
 # Accuracy
 acc_tr_kmeans = evalAccuracy(y_hat_tr+1, y_tr)
 acc_te_kmeans = evalAccuracy(y_hat_te+1, y_te)
 #### Notice: the label saved in y_hat_te goes from 0 to 18, not from 1 to 19
 
-plotConfusionMatrix(y_hat_tr+1, y_tr, actNamesShort, title='Confusion Matrix, train', save_img=True, img_path='img/conf_mat_tr.png')
-plotConfusionMatrix(y_hat_te+1, y_te, actNamesShort, title='Confusion Matrix, test', save_img=True, img_path='img/conf_mat_te.png')
+cm_tr = plotConfusionMatrix(y_hat_tr+1, y_tr, actNamesShort, title='Confusion Matrix, train', save_img=True, img_path='img/conf_mat_tr.png')
+cm_te = plotConfusionMatrix(y_hat_te+1, y_te, actNamesShort, title='Confusion Matrix, test', save_img=True, img_path='img/conf_mat_te.png')
 
 print(f"Accuracy (training): {acc_tr_kmeans}")
 print(f"Accuracy (test): {acc_te_kmeans}")
+
+# Accuracies for each activity
+acc_act_tr = np.diagonal(cm_tr)/n_elem_tr
+acc_act_te = np.diagonal(cm_te)/n_elem_te
+
+acc_class_nd = np.stack([acc_act_tr.reshape((NAc,)), acc_act_te.reshape((NAc,))], axis=0)
+
+acc_classes = pd.DataFrame(acc_class_nd, columns=actNamesShort, index=['Accuracy, train', 'Accuracy, test'])
+
+pd.set_option('display.max_rows', 6)
+pd.set_option('display.max_columns', 20)
+pd.set_option('display.width', 150)
+
+print(acc_classes)
