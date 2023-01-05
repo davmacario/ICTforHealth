@@ -56,6 +56,8 @@ def plotConfusionMatrix(col_predict, col_label, class_names, title='Confusion Ma
   plt.tight_layout()
   plt.show()
 
+  return cm
+
 
 
 def interCentroidDist(centroids, cent_names_axis, plot=False, save_img=False, img_path='img/inter_centroid_dist.png'):
@@ -144,7 +146,7 @@ def avgDistCent(stdpoints):
       centroids) for each cluster
     ----------------------------------------------------------
     Outputs:
-    - dpoints: ndarray contaiing for each cluster the average 
+    - dpoints: ndarray containing for each cluster the average 
       distance
     """
     # Average distance between each centroid and its points 
