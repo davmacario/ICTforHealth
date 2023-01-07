@@ -181,6 +181,7 @@ def centroidSeparationPlot(centroids, stdpoints, cent_names_axis, save_img=False
     plt.grid()
     plt.xticks(np.arange(NAc), cent_names_axis, rotation=90)
     plt.legend()
+    plt.title('Centroid separation plot')
     plt.tight_layout()
     if save_img:
         plt.savefig(img_path)
