@@ -4,8 +4,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 
 from sub.preprocessor import Preprocessor, buildDataSet, dist_eval
-from sub.evaluators import evalAccuracy, interCentroidDist, centroidSeparationPlot, plotConfusionMatrix
-from sub.pca import PCA
+from sub.evaluators import evalAccuracy, evalAccuracyClasses, interCentroidDist, centroidSeparationPlot, plotConfusionMatrix
 
 from sub.preprocessor import sensNames, actNamesShort, actNames
 
@@ -159,7 +158,11 @@ plt.tight_layout()
 plt.savefig('./img/centroids.png')
 plt.show()
 
+### Test set
+
 X_te, y_te = buildDataSet(filedir, patients, activities, slices_te, used_sensors, preprocessor_obj=preproc, plots=False)[:2]
+
+################ Performance analysis
 
 y_hat_tr = k_means_fitted.predict(X_tr)
 y_hat_te = k_means_fitted.predict(X_te)
@@ -167,8 +170,9 @@ y_hat_te = k_means_fitted.predict(X_te)
 # Accuracy
 acc_tr_kmeans = evalAccuracy(y_hat_tr+1, y_tr)
 acc_te_kmeans = evalAccuracy(y_hat_te+1, y_te)
-#### Notice: the label saved in y_hat_te goes from 0 to 18, not from 1 to 19
+#### Notice: the label saved in y_hat goes from 0 to 18, not from 1 to 19
 
+# Confusion matrix
 cm_tr = plotConfusionMatrix(y_hat_tr+1, y_tr, actNamesShort, title='Confusion Matrix, train', save_img=True, img_path='img/conf_mat_tr.png')
 cm_te = plotConfusionMatrix(y_hat_te+1, y_te, actNamesShort, title='Confusion Matrix, test', save_img=True, img_path='img/conf_mat_te.png')
 
@@ -176,8 +180,8 @@ print(f"Accuracy (training): {acc_tr_kmeans}")
 print(f"Accuracy (test): {acc_te_kmeans}")
 
 # Accuracies for each activity
-acc_act_tr = np.diagonal(cm_tr)/n_elem_tr
-acc_act_te = np.diagonal(cm_te)/n_elem_te
+acc_act_tr = evalAccuracyClasses(y_hat_tr + 1, y_tr)
+acc_act_te = evalAccuracyClasses(y_hat_te + 1, y_te)
 
 acc_class_nd = np.stack([acc_act_tr.reshape((NAc,)), acc_act_te.reshape((NAc,))], axis=0)
 

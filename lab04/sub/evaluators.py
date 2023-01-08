@@ -26,37 +26,76 @@ def evalAccuracy(col_predict, col_label):
     if (col_label.shape[0] != n_elem):
         raise ValueError("The two arrays don't have the same length!")
 
-    tmp_sum = 0
+    n_classes = len(np.unique(col_label))
+    tmp_sum = np.zeros((n_classes,))
+    tmp_tot = np.zeros((n_classes,))
+    
     for i in range(n_elem):
+        tmp_tot[int(col_label[i])-1] += 1
         if col_label[i] == col_predict[i]:
-            tmp_sum += 1
+            tmp_sum[int(col_label[i])-1] += 1
 
-    accuracy = tmp_sum/n_elem
+    accuracy = (1/19) * np.sum(tmp_sum/tmp_tot)
 
     return accuracy
 
 
-def plotConfusionMatrix(col_predict, col_label, class_names, title='Confusion Matrix', save_img=False, img_path='./img/conf_matrix.png'):
-  """
-  plotConfusionMatrix
-  ----------------------------------------------------------
-  Plot the confusion matrix
-  ----------------------------------------------------------
-  """
-  cm = metrics.confusion_matrix(col_label, col_predict)
-  cm_df = pd.DataFrame(cm, index=class_names, columns=class_names)
-  
-  plt.figure(figsize=(10, 8))
-  ax = sn.heatmap(cm_df, annot=True, cmap='BuPu')
-  ax.set_xlabel("Predicted class")
-  ax.set_ylabel("True class")
-  plt.title(title)
-  if save_img:
-    plt.savefig(img_path)
-  plt.tight_layout()
-  plt.show()
+def evalAccuracyClasses(col_predict, col_label):
+    """
+    Find accuracy value for each class
+    ----------------------------------------------------------
+    Parameters:
+    - col_predict: array containing the predicted classes
+      - col_label: array containing the actual labels
+      ----------------------------------------------------------
+      Outputs:
+      - accuracy (ndarray)
+    """
+    if (len(col_predict.shape) > 1 or len(col_label.shape) > 1):
+        if (not all(col_predict.shape[1:] == 1) or not all(col_label.shape[1:] == 1)):
+            raise ValueError("The passed arrays are not 1D")
+    
+    n_elem = col_predict.shape[0]
+    if (col_label.shape[0] != n_elem):
+        raise ValueError("The two arrays don't have the same length!")
+    
+    n_classes = len(np.unique(col_label))
+    tmp_sum = np.zeros((n_classes,))
+    tmp_tot = np.zeros((n_classes,))
 
-  return cm
+    for i in range(len(col_label)):
+      tmp_tot[int(col_label[i])-1] += 1
+      if col_label[i] == col_predict[i]:
+            tmp_sum[int(col_label[i])-1] += 1
+    
+    acc_classes = tmp_sum/tmp_tot
+
+    return acc_classes
+
+
+
+
+def plotConfusionMatrix(col_predict, col_label, class_names, title='Confusion Matrix', save_img=False, img_path='./img/conf_matrix.png'):
+    """
+    plotConfusionMatrix
+    ----------------------------------------------------------
+    Plot the confusion matrix
+    ----------------------------------------------------------
+    """
+    cm = metrics.confusion_matrix(col_label, col_predict)
+    cm_df = pd.DataFrame(cm, index=class_names, columns=class_names)
+    
+    plt.figure(figsize=(10, 8))
+    ax = sn.heatmap(cm_df, annot=True, cmap='BuPu')
+    ax.set_xlabel("Predicted class")
+    ax.set_ylabel("True class")
+    plt.title(title)
+    if save_img:
+      plt.savefig(img_path)
+    plt.tight_layout()
+    plt.show()
+
+    return cm
 
 
 
