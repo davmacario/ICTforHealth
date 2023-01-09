@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.cluster as sk
 from scipy import signal
-
+import math
 #
 #
 #
@@ -211,11 +211,28 @@ class Preprocessor:
 
         ############## Filter ################################################################
         if self.filt:
-            for i in range(n_f):
-                # The signals (time series) are on the columns - 1 signal per sensor
-                start_values[:, i] = np.array(signal.filtfilt(self._b, self._a, start_values[:, i]))
+            val = np.zeros(start_values.shape)
+            if self.us == 1:
+                for i in range(n_f):
+                    # The signals (time series) are on the columns - 1 signal per sensor
+                    val[:, i] = np.array(signal.filtfilt(self._b, self._a, start_values[:, i]))
+            else:
+                for i in range(n_f):
+                    # Divide signal into section `self.us` samples long
+                    n_blocks = int(np.ceil(n_p/self.us))
+                    for j in range(n_blocks):
+                        end_ind = min(n_p, (j+1)*self.us)
+                        index_list = list(range(j*self.us, end_ind))
 
-            df_start = pd.DataFrame(start_values, columns=feat_list)
+                        current_subset = start_values[index_list, i]
+
+                        # Take mean of measurement
+                        filt_group = np.array(signal.filtfilt(self._b, self._a, current_subset))
+
+                        val[index_list, i] = np.copy(filt_group)
+
+
+            df_start = pd.DataFrame(val, columns=feat_list)
 
         ############## Undersampling
         n_p_us = int(np.ceil(n_p/self.us))
