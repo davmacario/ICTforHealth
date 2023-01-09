@@ -92,7 +92,8 @@ NAc = 19 # total number of activities
 actNamesSub = [actNamesShort[i-1] for i in activities] # short names of the selected activities
 
 #sensors=list(range(45)) # list of sensors
-sensors = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+#sensors = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+sensors = [6, 7, 15, 16, 24, 33, 34, 42, 43]
 sensNamesSub = [sensNames[i] for i in sensors] # names of selected sensors
 
 Nslices = 60 # number of slices to plot
@@ -107,7 +108,7 @@ for i in activities:
     activities = [i]
     x = generateDF(filedir,sensNamesSub,sensors,patients,activities,slices)
     x = x.drop(columns=['activity'])
-    x = prep.transform(x)
+    # x = prep.transform(x)
     sensors_n = list(x.columns)
     data = x.values
     plt.figure(figsize=(12, 6))
