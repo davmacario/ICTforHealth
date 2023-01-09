@@ -144,7 +144,7 @@ def dist_eval(element, train):
 #
 # Preprocessing pipeline - implemented as a 
 # class to allow for evaluating the filter 
-# parameters just once
+# parameters just once and reuse the same object
 class Preprocessor:
     def __init__(self, fs, filt_type, cutoff, us_factor=25):
         """
@@ -179,6 +179,18 @@ class Preprocessor:
             self.filt = True
             self._b, self._a = signal.butter(2, cutoff, btype=filt_type, fs=fs)
         
+    def plotFreqResp(self, saveimg=False, imgpath='./img/freq_resp.png'):
+        w, h = signal.freqz(self._b, self._a) 
+
+        plt.figure()
+        plt.plot(w*self.fs/(2*np.pi), abs(h)**2)
+        plt.title('Filter frequency response')
+        plt.ylabel(r'$\|H\|^2$')
+        plt.xlabel('Frequency [Hz]')
+        plt.grid()
+        if saveimg:
+            plt.savefig(imgpath)
+        plt.show()
 
     # Complete preprocessing pipeline
     def transform(self, df):
@@ -240,7 +252,8 @@ class Preprocessor:
 #
 # Function for building the dataset
 def buildDataSet(filedir, patient, activities, slices, 
-                all_sensors, preprocessor_obj=None, plots=True):
+                all_sensors, preprocessor_obj=None, plots=True,
+                savefig=False, imgpath='./img/mean_and_stdev.png'):
 
     """
     buildDataSet
@@ -334,6 +347,8 @@ def buildDataSet(filedir, patient, activities, slices,
         plt.xticks(np.arange(x_curr.shape[1]), list(x_curr.columns), rotation=90)
 
         plt.tight_layout()
+        if savefig:
+            plt.savefig(imgpath)
         plt.show()
 
     X_created = x_tr_df.drop(columns=['activity']).values

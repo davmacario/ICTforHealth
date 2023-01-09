@@ -44,3 +44,6 @@ Can use **at most 30 (/60) slices in the training phase** and can do less than 1
 A good idea could be that of **working in frequency domain** only... probably filtering will not be necessary, even if it won't be trivial to make the shift to frequency domain, since the resolution depends on the number of samples. Then zero-padding will be needed in order to increase the frequency resolution for the training set, which has less samples than the test set.
 
 Another possible improvement could be that of taking as values of the signals the autocorrelation.
+
+**Problem**: for both these approaches, it is not possible to determine *F-dimensional* centroids (being *F* the number of features), since it does not make sense to only take 1 value for each feature (for the centroids) if we are interested in comparing the overall shape.
+This limits the approach to be time-domain only.
