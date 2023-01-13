@@ -46,9 +46,9 @@ n_sensors_tot = 45
 sensors_IDs = list(range(n_sensors_tot))            # List of sensor IDs
 sensNamesSub = [sensNames[i] for i in sensors_IDs]  # Names of sensors
 
-# Number of slices to plot (TO BE TUNED)
+# Number of training slices
 Nslices = 10
-Ntot = 60                               # Total number of slices
+Ntot = 60                                # Total number of slices
 slices = list(range(1, Nslices+1))       # First Nslices to plot
 print(f"Training set slices: {Nslices}")
 
