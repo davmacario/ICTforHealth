@@ -82,7 +82,7 @@ def plotConfusionMatrix(col_predict, col_label, class_names, title='Confusion Ma
     Plot the confusion matrix
     ----------------------------------------------------------
     """
-    cm = metrics.confusion_matrix(col_label, col_predict)
+    cm = metrics.confusion_matrix(col_label, col_predict, normalize='true')
     cm_df = pd.DataFrame(cm, index=class_names, columns=class_names)
     
     plt.figure(figsize=(10, 8))

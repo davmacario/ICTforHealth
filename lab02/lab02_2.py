@@ -33,8 +33,8 @@ plt.close('all')
 
 np.random.seed(315054)
 
-inputFile = 'lab02/data/parkinsons_updrs.csv'
-inputfile_2 = 'data/parkinsons_updrs.csv'
+inputFile = './lab02/data/parkinsons_updrs.csv'
+inputfile_2 = './data/parkinsons_updrs.csv'
 
 ####### Preparing and analyzing the data: #################################
 

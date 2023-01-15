@@ -25,6 +25,7 @@ plt.plot(th, h)
 plt.grid()
 plt.xlabel('t (s)')
 plt.ylabel('h(t)')
+plt.title('Filter impulse response')
 plt.show()
 
 plt.show()

@@ -12,12 +12,6 @@ from sub.preprocessor import sensNames, actNames, actNamesShort
 
 from multiprocessing import Pool
 
-""" 
-- TODO[7]: Plot confusion matrix for both training and test sets
-- TODO[9]: Improve system for accuracy ~= 85%-90%
-"""
-
-
 def tries_loop(sens_comb):
     best_acc_tr = 0
     best_acc_te = 0
@@ -146,7 +140,7 @@ sensors_IDs = list(range(n_sensors_tot))        # List of sensors
 sensNamesSub = [sensNames[i] for i in sensors_IDs]  # Names of selected sensors
 
 # Number of slices to plot (TO BE TUNED)
-Nslices = 10
+Nslices = 15
 # Nslices = 60
 Ntot = 60                               # Total number of slices
 slices = list(range(1, Nslices+1))       # First Nslices to plot
@@ -164,9 +158,9 @@ acc_id = [6, 7, 15, 16, 24, 33, 34, 35, 42, 43]
 gyro_id = [n + 3 for n in acc_id]
 mag_id = [n + 6 for n in acc_id]
 
-valid_sens = [6, 7, 15, 16, 24, 33, 34, 42, 43]
+valid_sens = [6, 7, 15, 16, 24, 25, 33, 34, 42, 43]
 
-for n in [7, 8]:
+for n in [7, 8, 9]:
     sensors_combinations += list(it.combinations(valid_sens, n))
     #sensors_combinations += list(it.combinations(sensors_IDs, n))
 
