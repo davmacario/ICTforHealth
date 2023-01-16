@@ -55,6 +55,7 @@ y_sampled = y[t_sampled]
 
 # Select the sample t_* randomly among the ones which were not selected
 t_rem = list(set(t) - set(t_sampled))
+# Sampled time instant (to be guesed):
 t_star = np.random.choice(t_rem, (1,), replace=False)
 y_true = y[t_star]          # True value of y at t_*
 
@@ -62,6 +63,7 @@ y_true = y[t_star]          # True value of y at t_*
 # First, create matrix containing time differences
 # Subtract the vector transpose from itself, but after reshape
 t_new = t[:, np.newaxis]        # Make the array t 2D
+# This way delta_t is a matrix with the time differences
 delta_t_matr = t_new - t_new.T
 
 print(delta_t_matr)
@@ -74,7 +76,7 @@ plt.colorbar()
 plt.title('Theoretical Covariance matrix')
 plt.show()
 
-# Generalte the Covariance matrix starting from the extracted samples
+# Generate the covariance matrix starting from the extracted samples
 t_sampled_resh = t_sampled[:, np.newaxis]
 delta_t_matr_N = t_sampled_resh - t_sampled_resh.T
 
@@ -92,7 +94,7 @@ delta_t_matr_N_total = t_total_resh - t_total_resh.T
 R_N_total = np.exp(-(delta_t_matr_N_total/T)**2/2)
 plt.matshow(R_N_total)
 plt.colorbar()
-plt.title('Complete covariance matrix - training samples plus test element')
+plt.title('Complete covariance matrix - including test element')
 plt.show()
 
 k = R_N_total[0:-1, -1][:, np.newaxis]      # Size (N, 1)
@@ -100,6 +102,7 @@ d = R_N_total[-1, -1]                       # Scalar
 R_N_inv = np.linalg.inv(R_N)
 y_sampled_resh = y_sampled[:, np.newaxis]
 
+# From theory - direct evaluation of GPR results
 mu_star = (k.T@R_N_inv@y_sampled_resh).item()
 sigma_star = (d - k.T@R_N_inv@k).item()
 
