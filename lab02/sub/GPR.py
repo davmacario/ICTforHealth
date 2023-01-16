@@ -61,16 +61,25 @@ class GaussianProcessRegression():
             self.y_te_norm = self.y_te
 
     def eval_params(self):
+        """
+        Used to evaluate the parameters needed for performing GPR.
+
+        In particular, the evaluated quantities are: 
+        - 
+        """
         tmp_R = np.zeros((self.Np_tr+1, self.Np_tr+1))
 
         X_total = np.vstack([self.X_tr_norm, self.X_te_norm])
 
-        # Possible to improve - the matrix to be built is actually symmetric
+        # Optimize execution since the matrix is symmetric
         for n in range(self.Np_tr+1):
-            for k in range(self.Np_tr+1):
+            for k in range(n, self.Np_tr+1):
+                # Evaluate the whole covariance matrix (including tested element)
+                # The norm of the distance between every pair of regressing points (x)
                 tmp_R[n, k] = self.theta * \
                     np.exp(np.linalg.norm(
                         X_total[n, :] - X_total[k, :])/(2*self.r2))
+                tmp_R[k, n] = tmp_R[n, k]
 
         self.R_N = tmp_R + self.var_nu*np.identity(self.Np_tr+1)
 
