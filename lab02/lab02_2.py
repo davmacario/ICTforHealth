@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import sub.GPR as GPR
-from sub.GPR import normalizeData
+from sub.GPR import normalizeData, denormalizeData
 
 
 def dist_eval(element, train):
@@ -75,7 +75,7 @@ Np, Nc = X.shape    # Np: n. of patients, Nc: number of regressors Nf + 1
 # It is necessary to first normalize the data, then evaluate the covariance (we
 # are basically evaluating the correlation coefficient)
 
-Xnorm = (X - X.mean())/X.std()  # Normalize the entire dataset
+Xnorm = (X - X.mean(axis=0))/X.std(axis=0)  # Normalize the entire dataset
 c = Xnorm.cov()  # Measure the covariance
 
 indexsh = np.arange(Np)  # Vector from 0 to Np-1
@@ -84,7 +84,7 @@ Xsh = X.copy(deep=True)       # Copy X into Xsh
 
 # Shuffling of Xsh is performed by assigning the indices of the shuffled
 # vector to the rows of Xsh and then performing a sort (!!!)
-Xsh = Xsh.set_axis(indexsh, axis=0, inplace=False)
+Xsh = Xsh.set_axis(indexsh, axis=0, copy=False)
 Xsh = Xsh.sort_index(axis=0)
 
 ########################################################################
@@ -133,41 +133,189 @@ X_te_norm = normalizeData(X_te, mean_X, stdev_X).values
 y_te_norm = normalizeData(y_te, mean_y, stdev_y).values
 
 ######## GPR ######################
-r2 = 1
 theta = 1
-s2 = 0.001
 
-y_hat_val_norm = np.zeros((len(y_val_norm, )))
+# Grid search for the best hyperparameters (not theta
+# since the data will be normalized and 1 is okay)
+r2 = np.array([0.75, 0.80, 0.85, 0.9, 0.95, 1])
+s2 = np.array([0.0007, 0.0008, 0.001])
+
+# Parameter grid
+param_grid = np.zeros((len(r2), len(s2), 2))
+
+for i in range(len(r2)):
+    for j in range(len(s2)):
+        param_grid[i, j, 0] = r2[i]
+        param_grid[i, j, 1] = s2[j]
+
+flat_grid = param_grid.reshape((len(r2)*len(s2), 2))
 
 N = 10
 
-for k in range(len(y_val)):
-    x = X_val_norm[k, :]
-    y = y_val_norm[k]
+# When iterating on the parameter grid, need to store
+# each resulting y_hat_val
+y_hat_val_list = []
+mse_val_list = []
+
+for ind in range(flat_grid.shape[0]):
+    r2_curr = flat_grid[ind][0]
+    s2_curr = flat_grid[ind][1]
+
+    y_hat_val_norm = np.zeros((len(y_val_norm, )))
+
+    # Initial procedure to check it all works
+    for k in range(len(y_val)):
+        x = X_val_norm[k, :]
+        y = y_val_norm[k]
+
+        # Find N-1 closest elements in the training set
+        dist_vec = dist_eval(x, X_tr_norm)
+
+        closest_ind = np.argsort(dist_vec)[:10]
+
+        X_Nmin1 = X_tr_norm[closest_ind, :]
+        y_Nmin1 = y_tr_norm[closest_ind]
+
+        GaussReg = GPR.GaussianProcessRegression(
+            y_Nmin1, X_Nmin1, y, x, r2_curr, theta, s2_curr, normalize=False)
+
+        y_hat = GaussReg.solve()
+
+        y_hat_val_norm[k] = y_hat
+
+    # De-normalize data
+    y_hat_val = denormalizeData(y_hat_val_norm, mean_y, stdev_y)
+    y_hat_val_list.append(y_hat_val)
+
+    # Evaluate the mean square error -> metric to be minimized by
+    # choosing the right hyperparameters (grid search)
+    mse_val = sum((y_val - y_hat_val)**2)/len(y_hat_val)
+    mse_val_list.append(mse_val)
+
+#     plt.figure(figsize=(12, 6))
+#     plt.plot(y_val_norm, y_hat_val_norm, '.')
+#     v = plt.axis()
+#     # Plot 45deg diagonal line
+#     plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
+#     plt.grid()
+#     plt.xlabel(r"$y$")
+#     plt.ylabel(r"$\hat{y}$")
+#     plt.title(
+#         f"Validation set - r^2 = {r2}, theta = {theta}, sigma_nu = {s2}")
+
+# plt.show()
+
+# Best parameters among the considered ones:
+ind_best = np.argmin(mse_val_list)
+best_params = flat_grid[ind_best, :]
+
+print(f"Best parameters: {best_params}\nLowest MSE: {mse_val_list[ind_best]}")
+
+r2_best = best_params[0]
+s2_best = best_params[1]
+
+
+print(f"Used parameters:\n\
+N = {N}         \n\
+theta = {theta} \n\
+r^2 = {r2_best} \n\
+s^2 = {s2_best} \n"
+      )
+
+########## Training set ##########
+
+y_hat_tr_norm = np.zeros((len(y_tr_norm, )))
+
+for k in range(len(y_tr)):
+    x = X_tr_norm[k, :]
+    y = y_tr_norm[k]
 
     # Find N-1 closest elements in the training set
-    dist_vec = dist_eval(x, X_tr_norm)
+    dist_vec_tr = dist_eval(x, X_tr_norm)
 
-    closest_ind = np.argsort(dist_vec)[:10]
+    closest_ind_tr = np.argsort(dist_vec_tr)[:10]
 
-    X_Nmin1 = X_tr_norm[closest_ind, :]
-    y_Nmin1 = y_tr_norm[closest_ind]
+    X_Nmin1 = X_tr_norm[closest_ind_tr, :]
+    y_Nmin1 = y_tr_norm[closest_ind_tr]
 
     GaussReg = GPR.GaussianProcessRegression(
-        y_Nmin1, X_Nmin1, y, x, r2, theta, s2, normalize=False)
+        y_Nmin1, X_Nmin1, y, x, r2_curr, theta, s2_curr, normalize=False)
 
     y_hat = GaussReg.solve()
 
-    y_hat_val_norm[k] = y_hat
+    y_hat_tr_norm[k] = y_hat
 
-plt.figure(figsize=(12, 6))
-plt.plot(y_val_norm, y_hat_val_norm, '.')
-v = plt.axis()
-# Plot 45deg diagonal line
-plt.plot([v[0], v[1]], [v[0], v[1]], 'r', linewidth=2)
+y_hat_tr = denormalizeData(y_hat_tr_norm, mean_y, stdev_y)
+
+# Performance evaluation - testing phase
+e_tr = y_tr - y_hat_tr      # Estimation error - test set
+mean_e_tr = e_tr.mean(axis=0)
+stdev_e_tr = e_tr.std(axis=0)
+msv_e_tr = (e_tr**2).mean(axis=0)
+
+print("Mean error - train: ", mean_e_tr)
+print("Standard deviation of the error - train: ", stdev_e_tr)
+print("MSE - train: ", msv_e_tr)
+print("")
+
+########## Validation set ##########
+# Error - validation set with optimal parameters
+e_val = y_hat_val_list[ind_best] - y_val
+mean_e_val = e_val.mean(axis=0)
+stdev_e_val = e_val.std(axis=0)
+msv_e_val = (e_val**2).mean(axis=0)
+
+print("Mean error - validation: ", mean_e_val)
+print("Standard deviation of the error - validation: ", stdev_e_val)
+print("MSE - validation: ", msv_e_val)
+print("")
+
+########## Test set ##########
+
+y_hat_te_norm = np.zeros((len(y_te_norm, )))
+
+for k in range(len(y_te)):
+    x = X_te_norm[k, :]
+    y = y_te_norm[k]
+
+    # Find N-1 closest elements in the training set
+    dist_vec_te = dist_eval(x, X_te_norm)
+
+    closest_ind_te = np.argsort(dist_vec_te)[:10]
+
+    X_Nmin1 = X_tr_norm[closest_ind_te, :]
+    y_Nmin1 = y_tr_norm[closest_ind_te]
+
+    GaussReg = GPR.GaussianProcessRegression(
+        y_Nmin1, X_Nmin1, y, x, r2_curr, theta, s2_curr, normalize=False)
+
+    y_hat = GaussReg.solve()
+
+    y_hat_te_norm[k] = y_hat
+
+y_hat_te = denormalizeData(y_hat_te_norm, mean_y, stdev_y)
+
+# Performance evaluation - testing phase
+e_te = y_te - y_hat_te      # Estimation error - test set
+mean_e_te = e_te.mean(axis=0)
+stdev_e_te = e_te.std(axis=0)
+msv_e_te = (e_te**2).mean(axis=0)
+
+print("Mean error - test: ", mean_e_te)
+print("Standard deviation of the error - test: ", stdev_e_te)
+print("MSE - test: ", msv_e_te)
+
+# Error histogram
+e_all = [e_tr, e_val, e_te]
+
+plt.figure(figsize=(10, 6))
+plt.hist(e_all, bins=50, density=True, histtype='bar',
+         label=['train', 'validation', 'test'])
+plt.xlabel(r"$e = y_{te} - \^y_{te}$")
+plt.ylabel(r'$P(e$ in bin$)$')
+plt.legend()
 plt.grid()
-plt.xlabel(r"$y$")
-plt.ylabel(r"$\hat{y}$")
-plt.title(
-    f"Validation set - r^2 = {r2}, theta = {theta}, sigma_nu = {s2}")
+plt.title(f'DPR - Error histogram - N={N}')
+plt.tight_layout()
+plt.savefig('./img/error_hist.png')
 plt.show()

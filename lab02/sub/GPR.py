@@ -9,6 +9,10 @@ def normalizeData(X, mean_X, stdev_X):
     return X_norm
 
 
+def denormalizeData(X_norm, mean_X, stdev_X):
+    return (X_norm*stdev_X) + mean_X
+
+
 class GaussianProcessRegression():
     """
     Class used to solve Gaussian Process Regression problems.
