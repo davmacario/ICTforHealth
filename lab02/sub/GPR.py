@@ -10,6 +10,28 @@ def normalizeData(X, mean_X, stdev_X):
 
 
 class GaussianProcessRegression():
+    """
+    Class used to solve Gaussian Process Regression problems.
+    The solution is based on the assumption that the samples of 
+    the process are correlated via a gaussian-like 
+    autocorrelation.
+    -------------------------------------------------------------
+    Input parameters:
+    - `y_train`: training regressand vector
+    - `X_train`: training regressors matrix (each row is a 
+    regressor)
+    - `y_test`: test regressand (scalar)
+    - `X_test`: test regressor (1-D vector)
+    - `r_2`: value of the hyperparameter r^2 (exp. denominator in
+    the gaussian autocorrelation function)
+    - `theta`: value of the hyperparameter of the coefficient in
+    the autocorrelation expression
+    - `var_nu`: hyperparameter corresponding to the variance of 
+    the measurement noise
+    - `normalize` (default: True): bool to indicate whether to
+    normalize the given data
+    -------------------------------------------------------------
+    """
 
     def __init__(self, y_train, X_train, y_test, X_test, r_2, theta, var_nu, normalize=True):
         self.Np_tr, self.Nf = X_train.shape
@@ -63,9 +85,16 @@ class GaussianProcessRegression():
     def eval_params(self):
         """
         Used to evaluate the parameters needed for performing GPR.
-
+        -------------------------------------------------------------
         In particular, the evaluated quantities are: 
-        - 
+        - Full covariance matrix R_N, which includes the N-1 x N-1 
+        matrix used for evaluating mean and variance of the predicted 
+        sample(s)
+        - Covariance matrix R_N-1
+        - Vector k
+        - Scalar value d (element in position N,N of the full 
+        covariance matrix)
+        -------------------------------------------------------------
         """
         tmp_R = np.zeros((self.Np_tr+1, self.Np_tr+1))
 
@@ -88,6 +117,15 @@ class GaussianProcessRegression():
         self.d = self.R_N[-1, -1].item()
 
     def solve(self):
+        """
+        Solve the Gaussian Process Regression problem, i.e., estimate
+        the value of the regressand as the estimate mean value of the 
+        probability density function
+        -------------------------------------------------------------
+        This method calls the evaluation of the parameters 
+        (`self.eval_params()`) if it detects that they have not been 
+        computed yet
+        """
         if ((self.R_N == 0).all()):
             self.eval_params()
 
