@@ -115,6 +115,7 @@ class GaussianProcessRegression():
                         X_total[n, :] - X_total[k, :])**2)/(2*self.r2))
                 tmp_R[k, n] = tmp_R[n, k]
 
+        # Add the variance of the noise
         self.R_N = tmp_R + self.var_nu*np.identity(self.Np_tr+1)
 
         self.R_Nmin1 = self.R_N[:-1, :-1]

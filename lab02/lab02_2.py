@@ -272,7 +272,7 @@ for k in range(len(y_te)):
     y = y_te_norm[k]
 
     # Find N-1 closest elements in the training set
-    dist_vec_te = dist_eval(x, X_te_norm)
+    dist_vec_te = dist_eval(x, X_tr_norm)
 
     closest_ind_te = np.argsort(dist_vec_te)[:10]
 
