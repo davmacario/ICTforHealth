@@ -365,3 +365,9 @@ res_LLS = pd.DataFrame([[mean_e_te_LLS, stdev_e_te_LLS,
                        msv_e_te_LLS, e_te_R2_LLS]], index=['test'], columns=cols)
 print('LLS results: ')
 print(res_LLS)
+
+# Results from lab 1 - local linear regression
+print("From lab 1 - Local Linear Regression with 50 neighbors:")
+print("              mean       std       MSE       R^2\n\
+Training  0.142135  1.734098  3.027297  0.971932\n\
+Test     -0.265321  2.484910  6.245173  0.947994")
