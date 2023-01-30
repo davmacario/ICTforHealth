@@ -62,6 +62,7 @@ class GaussianProcessRegression():
         self.y_hat_te = 0
         self.mu = 0
         self.var = 0
+        self.stdev_denorm = 0
 
         if (normalize):
             self.mean_X = np.mean(X_train)
@@ -110,8 +111,8 @@ class GaussianProcessRegression():
                 # Evaluate the whole covariance matrix (including tested element)
                 # The norm of the distance between every pair of regressing points (x)
                 tmp_R[n, k] = self.theta * \
-                    np.exp(np.linalg.norm(
-                        X_total[n, :] - X_total[k, :])/(2*self.r2))
+                    np.exp(-(np.linalg.norm(
+                        X_total[n, :] - X_total[k, :])**2)/(2*self.r2))
                 tmp_R[k, n] = tmp_R[n, k]
 
         self.R_N = tmp_R + self.var_nu*np.identity(self.Np_tr+1)
@@ -138,8 +139,9 @@ class GaussianProcessRegression():
         y_tr_norm = self.y_tr_norm[:, np.newaxis]
 
         self.mu = (k.T@R_N_1_inv@y_tr_norm).item()
-        self.var = (self.d - k.T@R_N_1_inv@k).item()
+        self.var = (self.d - (k.T@R_N_1_inv@k)).item()
 
         self.y_hat_te = self.mu*self.std_y + self.mean_y
+        self.stdev_denorm = self.std_y*np.sqrt(self.var)
 
-        return self.y_hat_te
+        return self.y_hat_te, self.stdev_denorm

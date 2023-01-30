@@ -97,7 +97,7 @@ plt.colorbar()
 plt.title('Complete covariance matrix - including test element')
 plt.show()
 
-k = R_N_total[0:-1, -1][:, np.newaxis]      # Size (N, 1)
+k = R_N_total[:-1, -1][:, np.newaxis]      # Size (N, 1)
 d = R_N_total[-1, -1]                       # Scalar
 R_N_inv = np.linalg.inv(R_N)
 y_sampled_resh = y_sampled[:, np.newaxis]
@@ -105,6 +105,7 @@ y_sampled_resh = y_sampled[:, np.newaxis]
 # From theory - direct evaluation of GPR results
 mu_star = (k.T@R_N_inv@y_sampled_resh).item()
 sigma_star = (d - k.T@R_N_inv@k).item()
+stdev_star = np.sqrt(sigma_star)
 
 # Find the approx.value of y(t_*) by using linear regression (with LLS)
 # 1 'feature': time
@@ -136,7 +137,7 @@ plt.plot(t_sampled, y_sampled, 'bo', label='Sampled values')
 plt.plot(t_star, y_true, 'ro', label='True value')
 plt.plot(t_star, mu_star, 'gx', label='GPR estimation')
 plt.plot(t_star*np.ones((2,)),
-         np.array([mu_star - sigma_star, mu_star + sigma_star]), 'g', label='GPR range')
+         np.array([mu_star - stdev_star, mu_star + stdev_star]), 'g', label='GPR range')
 plt.plot(t_star, y_hat_star, 'k+', label='LLS estimation')
 plt.plot(t_sampled, y_hat_tr, 'k', label='Linear regression')
 plt.xlabel('t (s)')
