@@ -82,7 +82,8 @@ data_norm = (data - data.mean())/data.std()       # Normalize data
 clustering = sk.DBSCAN(eps=0.5, min_samples=4).fit(data_norm)
 
 ii = np.argwhere(clustering.labels_ == -1)[:, 0]    # Outliers
-# Print outlier
+# Print outlier(s)
+print("Detected outliers: ")
 print(xx.iloc[ii])
 
 # Drop the outliers
