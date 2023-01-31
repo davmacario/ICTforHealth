@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.cluster as sk
-import scipy.integrate as integ
 
 
 def findSS(y, x):
@@ -34,10 +33,8 @@ def findSS(y, x):
     return thresh, sensitivity, specificity
 
 
-def definitelyMyTrapezoidalRule(y, x):
+def myTrapezoidalRule(y, x):
     tmp_int = 0
-
-    # tmp_int = integ.trapezoid(y_sort, x_sort)
 
     for i in range(len(x)-1):
         tmp_int += 0.5*(y[i] + y[i+1])*(x[i+1] - x[i])
@@ -157,7 +154,7 @@ plt.show()
 
 # AUC
 # Integrate via trapezoidal rule
-AuC = definitelyMyTrapezoidalRule(sens_list_1[::-1], FA_1[::-1])
+AuC = myTrapezoidalRule(sens_list_1[::-1], FA_1[::-1])
 print(f"AuC - test 2: {AuC}")
 
 prevalence = 0.01
@@ -258,7 +255,7 @@ plt.show()
 
 # AUC
 # Integrate via trapezoidal rule
-AuC = definitelyMyTrapezoidalRule(sens_list_2[::-1], FA_2[::-1])
+AuC = myTrapezoidalRule(sens_list_2[::-1], FA_2[::-1])
 print(f"AuC - test 2: {AuC}")
 
 
