@@ -5,6 +5,10 @@ import sklearn.cluster as sk
 
 
 def findSS(y, x):
+    """
+    - x: value of the test (on which to apply threshold)
+    - y: actual correct outcome of the test
+    """
     # Sort values of x and use them as thresholds
     ind_sort = np.argsort(x)
     thresh = np.append([0], x[ind_sort])    # Notice: added 0
@@ -12,8 +16,8 @@ def findSS(y, x):
     sens_list = []
     spec_list = []
 
-    x0 = x[y == 0]
-    x1 = x[y == 1]
+    x0 = x[y == 0]  # values of 'x' associated with negative outcome 
+    x1 = x[y == 1]  # values of 'x' associated with positive outcome 
 
     Np = np.sum(y == 1)    # number of ill
     Nn = np.sum(y == 0)    # number of healthy
@@ -21,9 +25,11 @@ def findSS(y, x):
     for i in range(len(thresh)):
         thresh_now = thresh[i]
 
+        # Sensitivity: number of correctly detected positives over total number of ill
         n1 = np.sum(x1 > thresh_now)
         sens_list.append(n1/Np)
 
+        # Sensitivity: number of correctly detected negatives over total number of healthy
         n0 = np.sum(x0 < thresh_now)
         spec_list.append(n0/Nn)
 
@@ -66,12 +72,19 @@ Test2 = xx.IgG_Test2_titre.values
 
 # Plot test 2 vs. test 1 - see outliers
 plt.figure()
-plt.plot(Test1, Test2, '.')
+plt.plot(Test1[swab == 0], Test2[swab == 0], '.', label='neg')
+plt.plot(Test1[swab == 1], Test2[swab == 1], '.', label='pos')
 plt.title("Visualize outliers")
 plt.xlabel("Test 1")
 plt.ylabel("Test 2")
+plt.legend()
 plt.grid()
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/outliers_visual.png')
+except:
+    plt.savefig('./lab03/img/outliers_visual.png')
+# plt.show()
 
 data = xx.values
 N_points = data.shape[0]
@@ -79,7 +92,7 @@ N_points = data.shape[0]
 data_norm = (data - data.mean())/data.std()       # Normalize data
 
 # Carry out DBSCAN, setting suitable parameters (eps, M)
-clustering = sk.DBSCAN(eps=0.5, min_samples=4).fit(data_norm)
+clustering = sk.DBSCAN(eps=0.5, min_samples=5).fit(data_norm)
 
 ii = np.argwhere(clustering.labels_ == -1)[:, 0]    # Outliers
 # Print outlier(s)
@@ -115,7 +128,10 @@ sens = n1/Np
 n0 = np.sum(x0 < thresh)
 spec = n0/Nn
 
+print("-------------------------------------------------------------")
+print(f"Results - threshold = {thresh}")
 print(f"Sensitivity - test 1: {sens}\nSpecificity - test 1: {spec}")
+print("-------------------------------------------------------------")
 
 plt.figure()
 x_hist = [x0, x1]
@@ -126,7 +142,12 @@ plt.xlabel("Test 1 value")
 plt.ylabel("p(value in bin)")
 plt.title("p.d.f. of of the test value, given swab test result")
 plt.grid()
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/1_pdf_hist.png')
+except:
+    plt.savefig('./lab03/img/1_pdf_hist.png')
+# plt.show()
 
 # Now, using the defined function:
 thresh_list_1, sens_list_1, spec_list_1 = findSS(y, x)
@@ -139,7 +160,12 @@ plt.legend()
 plt.xlabel('Threshold')
 plt.ylabel('Sens / Spec')
 plt.title('Sensitivity / Specificity vs. threshold  for Test 1')
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/1_sens_spec_thresh.png')
+except:
+    plt.savefig('./lab03/img/1_sens_spec_thresh.png')
+# plt.show()
 
 # ROC curve
 FA_1 = 1 - spec_list_1
@@ -151,52 +177,73 @@ plt.grid()
 plt.xlabel(r"$p(T_p \| H)$")
 plt.ylabel(r"$p(T_p \| D)$")
 plt.title("ROC curve - test 1")
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/1_ROC.png')
+except:
+    plt.savefig('./lab03/img/1_ROC.png')
+# plt.show()
 
 # AUC
 # Integrate via trapezoidal rule
 AuC = myTrapezoidalRule(sens_list_1[::-1], FA_1[::-1])
-print(f"AuC - test 2: {AuC}")
+print(f"AuC - test 1: {AuC}")
+print("-------------------------------------------------------------")
 
 prevalence = 0.01
 
-p_h_given_neg_1 = (spec_list_1*(1-prevalence)) / \
+npv_1 = (spec_list_1*(1-prevalence)) / \
     ((1-sens_list_1)*prevalence + spec_list_1*(1-prevalence))
 
-p_ill_given_neg_1 = 1 - p_h_given_neg_1
+p_ill_given_neg_1 = 1 - npv_1
 
-p_ill_given_pos_1 = (sens_list_1*prevalence) / \
+ppv_1 = (sens_list_1*prevalence) / \
     (sens_list_1*prevalence + FA_1*(1-prevalence))
 
-p_h_given_pos_1 = 1 - p_ill_given_pos_1
+p_h_given_pos_1 = 1 - ppv_1
 
 plt.figure()
-plt.plot(thresh_list_1[1:], p_ill_given_neg_1[1:], label=r'$p(D|T_n)$')
-plt.plot(thresh_list_1[1:], p_ill_given_pos_1[1:], label=r'$p(D|T_p)$')
+plt.plot(thresh_list_1, p_ill_given_neg_1, label=r'$p(D|T_n)$')
+plt.plot(thresh_list_1, ppv_1, label=r'$p(D|T_p)$')
 plt.legend()
 plt.grid()
 plt.xlabel('threshold')
 plt.ylabel('Probability')
-plt.title(r"$p(D|T_n)$ and $p(D|T_p)$ comparison - test 1")
-plt.show()
+plt.title(r"$p(D|T_n)$ and precision comparison - test 1")
+plt.tight_layout()
+try:
+    plt.savefig('./img/1_precision_comparison.png')
+except:
+    plt.savefig('./lab03/img/1_precision_comparison.png')
+# plt.show()
 
 plt.figure()
-plt.plot(thresh_list_1[1:], p_h_given_neg_1[1:], label=r'$p(H|T_n)$')
-plt.plot(thresh_list_1[1:], p_h_given_pos_1[1:], label=r'$p(H|T_p)$')
+plt.plot(thresh_list_1, npv_1, label=r'$p(H|T_n)$')
+plt.plot(thresh_list_1, p_h_given_pos_1, label=r'$p(H|T_p)$')
 plt.legend()
 plt.grid()
 plt.xlabel('threshold')
 plt.ylabel('Probability')
-plt.title(r"$p(H|T_n)$ and $p(H|T_p)$ comparison - test 1")
-plt.show()
+plt.title(r"Neg. predictive value and $p(H|T_p)$ comparison - test 1")
+plt.tight_layout()
+try:
+    plt.savefig('./img/1_npv_comparison.png')
+except:
+    plt.savefig('./lab03/img/1_npv_comparison.png')
+# plt.show()
 
 plt.figure()
-plt.plot(p_ill_given_pos_1[1:], p_h_given_neg_1[1:])
+plt.plot(ppv_1, npv_1)
 plt.grid()
 plt.ylabel(r"p(H|T_n)")
 plt.xlabel(r"p(D|T_p)")
 plt.title(r"Test 1")
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/1_npv_vs_ppv.png')
+except:
+    plt.savefig('./lab03/img/1_npv_vs_ppv.png')
+# plt.show()
 
 
 ############# Test2 ##################################################################
@@ -217,7 +264,10 @@ sens = n1/Np
 n0 = np.sum(x0 < thresh)
 spec = n0/Nn
 
+print("-------------------------------------------------------------")
+print(f"Results - threshold = {thresh}")
 print(f"Sensitivity - test 2: {sens}\nSpecificity - test 2: {spec}")
+print("-------------------------------------------------------------")
 
 plt.figure()
 x_hist = [x0, x1]
@@ -227,7 +277,12 @@ plt.legend()
 plt.xlabel("Test 2 value")
 plt.ylabel("p(value in bin)")
 plt.title("p.d.f. of of the test value, given swab test result")
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/2_pdf_hist.png')
+except:
+    plt.savefig('./lab03/img/2_pdf_hist.png')
+# plt.show()
 
 # Now, using the defined function:
 thresh_list_2, sens_list_2, spec_list_2 = findSS(y, x)
@@ -240,7 +295,12 @@ plt.legend()
 plt.xlabel('Threshold')
 plt.ylabel('Sens / Spec')
 plt.title('Sensitivity / Specificity vs. threshold  for Test 2')
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/2_sens_spec_thresh.png')
+except:
+    plt.savefig('./lab03/img/2_sens_spec_thresh.png')
+# plt.show()
 
 # ROC curve
 FA_2 = 1 - spec_list_2
@@ -252,12 +312,18 @@ plt.grid()
 plt.xlabel(r"$p(T_p \| H)$")
 plt.ylabel(r"$p(T_p \| D)$")
 plt.title("ROC curve - test 2")
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/2_ROC.png')
+except:
+    plt.savefig('./lab03/img/2_ROC.png')
+# plt.show()
 
 # AUC
 # Integrate via trapezoidal rule
 AuC = myTrapezoidalRule(sens_list_2[::-1], FA_2[::-1])
 print(f"AuC - test 2: {AuC}")
+print("-------------------------------------------------------------")
 
 
 # ROC comparisons
@@ -271,45 +337,65 @@ plt.legend()
 plt.xlabel(r"$p(T_p \| H)$")
 plt.ylabel(r"$p(T_p \| D)$")
 plt.title("ROC curve - comparison")
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/ROC_comparison.png')
+except:
+    plt.savefig('./lab03/img/ROC_comparison.png')
+# plt.show()
 
 prevalence = 0.01
 
-p_h_given_neg_2 = (spec_list_2*(1-prevalence)) / \
+npv_2 = (spec_list_2*(1-prevalence)) / \
     ((1-sens_list_2)*prevalence + spec_list_2*(1-prevalence))
 
-p_ill_given_neg_2 = 1 - p_h_given_neg_2
+p_ill_given_neg_2 = 1 - npv_2
 
-p_ill_given_pos_2 = (sens_list_2*prevalence) / \
+ppv_2 = (sens_list_2*prevalence) / \
     (sens_list_2*prevalence + FA_2*(1-prevalence))
 
-p_h_given_pos_2 = 1 - p_ill_given_pos_2
+p_h_given_pos_2 = 1 - ppv_2
 
 
 plt.figure()
 plt.plot(thresh_list_2, p_ill_given_neg_2, label=r'$p(D|T_n)$')
-plt.plot(thresh_list_2, p_ill_given_pos_2, label=r'$p(D|T_p)$')
+plt.plot(thresh_list_2, ppv_2, label=r'$p(D|T_p)$')
 plt.legend()
 plt.grid()
 plt.xlabel('threshold')
 plt.ylabel('Probability')
-plt.title(r"$p(D|T_n)$ and $p(D|T_p)$ comparison - test 2")
-plt.show()
+plt.title(r"$p(D|T_n)$ and precision comparison - test 2")
+plt.tight_layout()
+try:
+    plt.savefig('./img/2_precision_comparison.png')
+except:
+    plt.savefig('./lab03/img/2_precision_comparison.png')
+# plt.show()
 
 plt.figure()
-plt.plot(thresh_list_2, p_h_given_neg_2, label=r'$p(H|T_n)$')
+plt.plot(thresh_list_2, npv_2, label=r'$p(H|T_n)$')
 plt.plot(thresh_list_2, p_h_given_pos_2, label=r'$p(H|T_p)$')
 plt.legend()
 plt.grid()
 plt.xlabel('threshold')
 plt.ylabel('Probability')
-plt.title(r"$p(H|T_n)$ and $p(H|T_p)$ comparison - test 2")
-plt.show()
+plt.title(r"Negative predictive value and $p(H|T_p)$ comparison - test 2")
+plt.tight_layout()
+try:
+    plt.savefig('./img/2_npv_comparison.png')
+except:
+    plt.savefig('./lab03/img/2_npv_comparison.png')
+# plt.show()
 
 plt.figure()
-plt.plot(p_ill_given_pos_2, p_h_given_neg_2)
+plt.plot(ppv_2, npv_2)
 plt.grid()
 plt.ylabel(r"p(H|T_n)")
 plt.xlabel(r"p(D|T_p)")
 plt.title(r"Test 2")
-plt.show()
+plt.tight_layout()
+try:
+    plt.savefig('./img/2_npv_vs_ppv.png')
+except:
+    plt.savefig('./lab03/img/2_npv_vs_ppv.png')
+# plt.show()
