@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 import sklearn.ensemble as ske
 import seaborn as sn
 
+# Set this flag to True to plot the figures
+plot_true = False
+
+
 pd.set_option('display.precision', 3, 'display.max_columns',
               50, 'display.max_rows', 50)
 np.set_printoptions(precision=3)
@@ -164,7 +168,8 @@ if plotCDF:
         plt.ylabel('P(X<=x)')
         plt.grid()
         plt.legend(loc='upper left')
-    plt.show()
+    if plot_true:
+        plt.show()
 
 # %%------------------ Decision tree -------------------
 
@@ -221,7 +226,8 @@ for i in range(N_iter):
 
     plt.title('shuffled_data (seed ' + str(r) + ')')
     plt.savefig('./img/tree_shuffle_' + str(r) + '.png')
-    plt.show()
+    if plot_true:
+        plt.show()
 
     ##############################################################
     # Random Forest Classifier
@@ -236,3 +242,18 @@ for i in range(N_iter):
     print('Random Forest:')
     print('Accuracy = ', acc_forest[i])
     print(conf_forest[i])
+    cm_df = pd.DataFrame(conf_forest[i], index=[
+                         'NO CKD', 'CKD'], columns=['NO CKD', 'CKD'])
+
+    plt.figure(figsize=(10, 8))
+    ax = sn.heatmap(cm_df, annot=True, cmap='BuPu')
+    ax.set_xlabel("Predicted class")
+    ax.set_ylabel("True class")
+    plt.title(f"Confusion matrix - seed = {r}")
+    try:
+        plt.savefig(f'./img/conf_mat_{r}.png')
+    except:
+        plt.savefig(f'./lab05/img/conf_mat_{r}.png')
+    plt.tight_layout()
+    if plot_true:
+        plt.show()
