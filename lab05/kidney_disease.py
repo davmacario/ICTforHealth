@@ -65,7 +65,7 @@ x = xx.copy()
 
 # Drop rows with less (<=) than 19 = Nf-6 recorded features:
 min_n_values = Nf - 6
-x = x.dropna(thresh=min_n_values)
+x = x.dropna(thresh=min_n_values)   # Thresh is the min. number of non-missing
 # necessary to have index without "jumps"
 x.reset_index(drop=True, inplace=True)
 
@@ -103,19 +103,26 @@ Xtest.reset_index(drop=True, inplace=True)  # reset the index of the dataframe
 Xtest_norm = (Xtest-mm)/ss
 Np, Nf = Xtest_norm.shape
 
-regr = tree.DecisionTreeRegressor()         # instantiate the regressor
+regr = tree.DecisionTreeRegressor()     # instantiate the regressor
 for kk in range(Np):
-    xrow = Xtest_norm.iloc[kk]  # k-th row
-    mask = xrow.isna()                        # columns with nan in row kk
+    xrow = Xtest_norm.iloc[kk]          # k-th row
+    mask = xrow.isna()                  # columns with nan in row kk
 
     # remove the columns from the training dataset
+
+    # For each element, we take the training dataset columns we need
+    # and perform regression to find the values that are missing
     Data_tr_norm = Xtrain_norm.loc[:, ~mask]
     y_tr_norm = Xtrain_norm.loc[:, mask]       # columns to be regressed
-    regr = regr.fit(Data_tr_norm, y_tr_norm)   # find the regression tree
+
+    # Apply regression via
+    regr_fit = regr.fit(Data_tr_norm, y_tr_norm)   # find the regression tree
     Data_te_norm = Xtest_norm.loc[kk, ~mask].values.reshape(1, -1)
-    ytest_norm = regr.predict(Data_te_norm)
-    a = xrow.values.astype(float)
-    a[mask] = ytest_norm.flatten()
+    ytest_norm = regr_fit.predict(Data_te_norm)
+
+    # Rewrite the row, by adding the values obtained with regression
+    a = xrow.values.astype(float)               # Cast
+    a[mask] = ytest_norm.flatten()              # Insert regressed values
     # substitute nan with regressed values
     Xtest_norm.iloc[kk] = a
 
@@ -176,6 +183,7 @@ acc_forest = []
 conf_forest = []
 
 for i in range(N_iter):
+    # Perform N iterations choosing a random seed
     r = np.random.randint(100)
     print('+------------------+')
     print(f'| Random Seed: {r:3} |')
