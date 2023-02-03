@@ -1,4 +1,3 @@
-
 # FastICA on an artificial example
 
 import numpy as np
@@ -23,9 +22,9 @@ x2 = np.sign(np.sin(2*np.pi*freq2* time-np.pi/5))  # Signal 2: square wave
 x3 = 4*signal.sawtooth(2*np.pi*freq3* time)  # Signal 3: saw tooth signal
 x4=np.cumsum(x2)
 x4=(x4-x4.mean())/x4.std()
-x4.resize(1,N) # signal 2: triangular signal
+x4.resize(1,N) # signal 4: triangular signal
 
-X = np.concatenate((x1,x2,x3,x4),axis=0) # shape: 3 rows N columns
+X = np.concatenate((x1,x2,x3,x4),axis=0) # shape: 4 rows N columns
 color = iter(cm.Set1(np.linspace(0, 1,N_signals)))
 plt.figure()
 for n in range(N_signals):
@@ -38,8 +37,8 @@ plt.tight_layout()
 plt.show()
 
 #%% Generate the observed data
-A = np.random.rand(N_signals,N_signals)  # true weight matrix (random)
-Y = np.dot(A,X)  # observed data, shape: 3 rows N columns
+A = np.random.rand(N_signals,N_signals)  # true weight matrix (random), NxN
+Y = np.dot(A,X)  # observed data, shape: 4 rows N columns
 color = iter(cm.Set1(np.linspace(0, 1,N_signals)))
 plt.figure()
 for n in range(N_signals):
@@ -52,8 +51,8 @@ plt.tight_layout()
 plt.show()
 
 #%% reshape
-X=X.T #shape: N rows, 3 columns 
-Y=Y.T #shape: N rows, 3 columns 
+X=X.T #shape: N rows, 4 columns 
+Y=Y.T #shape: N rows, 4 columns 
 #%% look at the pdfs
 plt.figure(figsize=(5,8))
 for n in range(N_signals):
