@@ -4,6 +4,7 @@ import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 from sklearn.decomposition import FastICA, PCA
+from scipy.signal import correlate
 from matplotlib.pyplot import cm
 
 #np.random.seed(30)  # set the seed to reproduce the experiment
@@ -73,12 +74,33 @@ plt.show()
 ica_mod = FastICA(algorithm='deflation', whiten='unit-variance')
 X_hat_ICA= ica_mod.fit_transform(Y)
 
+# Could evaluate the correlation betwen the obtained signals and determine
+# the mapping between the found ones and the original ones (permutations
+# of the signals order does not change the result!)
+# Initial signals: X
+# Approximated signals: X_hat_ICA
+
+best = np.zeros((N_signals,)).astype('int32')
+max_corr = np.zeros((N_signals, N_signals))
+corr_X_X_hat = np.zeros((N_signals, N_signals, N))
+for i in range(N_signals):
+    for j in range(N_signals):
+        #corr_X_X_hat[i, j, :] = correlate(X[:, i], X_hat_ICA[:, j])
+        max_corr[i, j] = max(correlate(X[:, i], X_hat_ICA[:, j]))
+    # Find most correlated signals
+    best[i] = int(np.argmax(max_corr[i, :]))
+    print(f"Best signal corresponding to {i}: {best[i]}")
+# (check no item repeats in 'best')
+
+# Reorder the signals in X_hat_ICA
+X_hat_Re = X_hat_ICA[:, best]
+
 color = iter(cm.Set1(np.linspace(0, 1,N_signals)))
 plt.figure()
 for n in range(N_signals):
     c = next(color)
     plt.subplot(N_signals,1,1+n)
-    plt.plot(X_hat_ICA[:,n]/np.std(X_hat_ICA[:,n]),'-',color=c,label='PCA component '+str(n+1)) 
+    plt.plot(X_hat_Re[:,n]/np.std(X_hat_Re[:,n]),'-',color=c,label='PCA component '+str(n+1)) 
     plt.plot(X[:,n]/np.std(X[:,n]),'--',color=c,label='signal '+str(n+1))
     plt.grid()
     plt.legend()
@@ -90,9 +112,6 @@ except:
     plt.savefig('./lab06/img/ICA_res.png')
 plt.show()
 
-# Could evaluate the correlation betwen the obtained signals and determine
-# the mapping between the found ones and the original ones (permutations
-# of the signals order does not change the result!)
 
 #%% Use PCA
 pca = PCA(n_components=N_signals)
