@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import sub.GPR as GPR
 from sub.GPR import normalizeData, denormalizeData
-
+import sys
 
 def dist_eval(element, train):
     """
@@ -37,6 +37,19 @@ inputFile = './lab02/data/parkinsons_updrs.csv'
 inputfile_2 = './data/parkinsons_updrs.csv'
 
 ####### Preparing and analyzing the data: #################################
+
+# Allow the user to choose whether to display the figures or not
+disp_plt = True
+if len(sys.argv) == 3:
+    if sys.argv[1] == '-p':
+        if sys.argv[2] == 'yes':
+            disp_plt = True
+        elif sys.argv[2] == 'no':
+            disp_plt = False
+    else:
+        print(f"Unknown argument '{sys.argv[1]}' - 'disp_plt' defaulted to {disp_plt}")
+else:
+    print(f"'disp_plt' defaulted to {disp_plt}")
 
 # Handle different file locations
 try:
@@ -326,7 +339,8 @@ plt.grid()
 plt.title(f'DPR - Error histogram - N={N}')
 plt.tight_layout()
 plt.savefig('./img/error_hist.png')
-plt.show()
+if disp_plt:
+    plt.show()
 
 # Estimated UPDRS vs. true one, with error bars:
 three_sigma = 3*stdev_y_hat_te
@@ -345,7 +359,8 @@ plt.grid()
 plt.title(f"GPR - Test set - N={N}")
 plt.tight_layout()
 plt.savefig('./img/y_hat-vs-y_te.png')
-plt.show()
+if disp_plt:
+    plt.show()
 
 
 # LLS
