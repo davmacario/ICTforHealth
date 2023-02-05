@@ -18,8 +18,27 @@ Nf = 2
 N_train = 1000
 # Allow the user to express the number of training points as
 # command line parameter of the program
-if len(sys.argv) > 1:
-    N_train = int(round(float(sys.argv[1])))
+disp_plot = True
+next_arg = 1
+flg_p = False
+arg_ind = 1
+while arg_ind < len(sys.argv):
+    if sys.argv[arg_ind] == '-p':
+        arg_ind += 1
+        flg_p = True
+        if sys.argv[arg_ind] == 'yes' or sys.argv[arg_ind] == 'y':
+            disp_plot = True
+        elif sys.argv[arg_ind] == 'no' or sys.argv[arg_ind] == 'n':
+            disp_plot = False
+    else:
+        N_train = int(round(float(sys.argv[arg_ind])))
+    arg_ind += 1
+
+if disp_plot:
+    print(f"The plots will be displayed")
+else:
+    print(f"The plots will not be displayed")
+
 
 print(f"Number of training set points: {N_train}")
 # Since function rand() generates samples in [0,1], need to fit them in [-1, 1]
@@ -42,7 +61,8 @@ try:
     plt.savefig('./img/training_set.png')
 except:
     plt.savefig('./exercises/img/training_set.png')
-plt.show()
+if disp_plot:
+    plt.show()
 
 decision_tree_classifier = tree.DecisionTreeClassifier(criterion='entropy')
 decision_tree_classifier_fitted = decision_tree_classifier.fit(X_tr, C_tr)
@@ -74,7 +94,8 @@ try:
     plt.savefig('./img/test_set.png')
 except:
     plt.savefig('./exercises/img/test_set.png')
-plt.show()
+if disp_plot:
+    plt.show()
 
 # Print the tree
 feat_names = ["X_1", "X_2"]
