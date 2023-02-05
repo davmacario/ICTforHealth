@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.cluster as sk
+import sys
 
 
 def findSS(y, x):
@@ -52,6 +53,20 @@ plt.rcParams["font.family"] = "Times New Roman"
 # %%
 plt.close('all')
 
+# Add the possibility to pass a command line arg to plot the figures:
+disp_plt = True
+if len(sys.argv) == 3:
+    if sys.argv[1] == '-p':
+        if sys.argv[2] == 'yes':
+            disp_plt = True
+        elif sys.argv[2] == 'no':
+            disp_plt = False
+    else:
+        print(
+            f"Unknown argument '{sys.argv[1]}' - 'disp_plt' defaulted to {disp_plt}")
+else:
+    print(f"'disp_plt' defaulted to {disp_plt}")
+
 inputFile = 'data/covid_serological_results.csv'
 inputFile_2 = 'lab03/data/covid_serological_results.csv'
 
@@ -84,7 +99,8 @@ try:
     plt.savefig('./img/outliers_visual.png')
 except:
     plt.savefig('./lab03/img/outliers_visual.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 data = xx.values
 N_points = data.shape[0]
@@ -147,7 +163,8 @@ try:
     plt.savefig('./img/1_pdf_hist.png')
 except:
     plt.savefig('./lab03/img/1_pdf_hist.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 # Now, using the defined function:
 thresh_list_1, sens_list_1, spec_list_1 = findSS(y, x)
@@ -165,7 +182,8 @@ try:
     plt.savefig('./img/1_sens_spec_thresh.png')
 except:
     plt.savefig('./lab03/img/1_sens_spec_thresh.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 # ROC curve
 FA_1 = 1 - spec_list_1
@@ -182,7 +200,8 @@ try:
     plt.savefig('./img/1_ROC.png')
 except:
     plt.savefig('./lab03/img/1_ROC.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 # AUC
 # Integrate via trapezoidal rule
@@ -215,7 +234,8 @@ try:
     plt.savefig('./img/1_precision_comparison.png')
 except:
     plt.savefig('./lab03/img/1_precision_comparison.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 plt.figure()
 plt.plot(thresh_list_1, npv_1, label=r'$p(H|T_n)$')
@@ -230,7 +250,8 @@ try:
     plt.savefig('./img/1_npv_comparison.png')
 except:
     plt.savefig('./lab03/img/1_npv_comparison.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 plt.figure()
 plt.plot(ppv_1, npv_1)
@@ -243,7 +264,8 @@ try:
     plt.savefig('./img/1_npv_vs_ppv.png')
 except:
     plt.savefig('./lab03/img/1_npv_vs_ppv.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 
 ############# Test2 ##################################################################
@@ -282,7 +304,8 @@ try:
     plt.savefig('./img/2_pdf_hist.png')
 except:
     plt.savefig('./lab03/img/2_pdf_hist.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 # Now, using the defined function:
 thresh_list_2, sens_list_2, spec_list_2 = findSS(y, x)
@@ -300,7 +323,8 @@ try:
     plt.savefig('./img/2_sens_spec_thresh.png')
 except:
     plt.savefig('./lab03/img/2_sens_spec_thresh.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 # ROC curve
 FA_2 = 1 - spec_list_2
@@ -317,7 +341,8 @@ try:
     plt.savefig('./img/2_ROC.png')
 except:
     plt.savefig('./lab03/img/2_ROC.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 # AUC
 # Integrate via trapezoidal rule
@@ -342,7 +367,8 @@ try:
     plt.savefig('./img/ROC_comparison.png')
 except:
     plt.savefig('./lab03/img/ROC_comparison.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 prevalence = 0.01
 
@@ -370,7 +396,8 @@ try:
     plt.savefig('./img/2_precision_comparison.png')
 except:
     plt.savefig('./lab03/img/2_precision_comparison.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 plt.figure()
 plt.plot(thresh_list_2, npv_2, label=r'$p(H|T_n)$')
@@ -385,7 +412,8 @@ try:
     plt.savefig('./img/2_npv_comparison.png')
 except:
     plt.savefig('./lab03/img/2_npv_comparison.png')
-# plt.show()
+if disp_plt:
+    plt.show()
 
 plt.figure()
 plt.plot(ppv_2, npv_2)
@@ -398,4 +426,5 @@ try:
     plt.savefig('./img/2_npv_vs_ppv.png')
 except:
     plt.savefig('./lab03/img/2_npv_vs_ppv.png')
-# plt.show()
+if disp_plt:
+    plt.show()
