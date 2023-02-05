@@ -2,6 +2,7 @@ import numpy as np
 from sklearn import tree
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
+import sys
 
 
 def C(x):
@@ -15,7 +16,12 @@ def C(x):
 
 Nf = 2
 N_train = 1000
-#N_train = 10000
+# Allow the user to express the number of training points as
+# command line parameter of the program
+if len(sys.argv) > 1:
+    N_train = int(round(float(sys.argv[1])))
+
+print(f"Number of training set points: {N_train}")
 # Since function rand() generates samples in [0,1], need to fit them in [-1, 1]
 X_tr = 2*np.random.rand(N_train, Nf) - np.ones((N_train, Nf))
 
